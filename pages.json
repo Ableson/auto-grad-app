@@ -21,11 +21,6 @@
       "navigationBarTitleText": "地图找房"
     }
   }, {
-    "path": "pages/house/index",
-    "style": {
-      "navigationBarTitleText": "房源"
-    }
-  }, {
     "path": "pages/house/detail/index",
     "style": {
       "navigationBarTitleText": "标的详情"
@@ -124,11 +119,6 @@
         "iconPath": "static/images/tabbar/home.png",
         "selectedIconPath": "static/images/tabbar/home_.png",
         "text": "首页"
-      },{
-        "pagePath": "pages/house/index",
-        "iconPath": "static/images/tabbar/detail.png",
-        "selectedIconPath": "static/images/tabbar/detail_.png",
-        "text": "房源"
       }, {
         "pagePath": "pages/work/index",
         "iconPath": "static/images/tabbar/work.png",
