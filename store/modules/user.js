@@ -145,6 +145,7 @@ export const useUserStore = defineStore('user', () => {
     roles,
     permissions,
     SET_AVATAR,
+    SET_PHONE,
     login: loginAction,
     wxLogin: wxLoginAction,
     getInfo: getInfoAction,

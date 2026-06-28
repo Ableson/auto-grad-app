@@ -52,7 +52,7 @@
   }, {
     "path": "pages/mine/info/index",
     "style": {
-      "navigationBarTitleText": "个人信息"
+      "navigationBarTitleText": "设置"
     }
   }, {
     "path": "pages/mine/info/edit",
