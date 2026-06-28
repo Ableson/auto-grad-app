@@ -1,9 +1,13 @@
 import { normalizeProvinceName } from '@/utils/province'
-import { getMapApiKey, getMapProvider } from '@/utils/map/config'
+import { getMapApiKey, getMapProvider, getMapConfig } from '@/utils/map/config'
 
 function parseGeoResult(province, city, district, address) {
+  let normalized = normalizeProvinceName(province)
+  if (!normalized && city) {
+    normalized = normalizeProvinceName(city)
+  }
   return {
-    province: normalizeProvinceName(province),
+    province: normalized,
     city: city || '',
     district: district || '',
     address: address || ''
@@ -16,10 +20,20 @@ function requestGeocode(url, data) {
       url,
       method: 'GET',
       data,
-      success: (res) => resolve(res.data),
+      success: (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          reject(new Error(`HTTP ${res.statusCode}`))
+          return
+        }
+        resolve(res.data)
+      },
       fail: reject
     })
   })
+}
+
+function isSuccessStatus(status) {
+  return Number(status) === 0
 }
 
 /** 腾讯地图逆地理编码 */
@@ -31,8 +45,8 @@ async function reverseGeocodeTencent(latitude, longitude) {
     key,
     get_poi: 0
   })
-  if (data.status !== 0 || !data.result) {
-    throw new Error(data.message || '腾讯逆地理编码失败')
+  if (!isSuccessStatus(data.status) || !data.result) {
+    throw new Error(data.message || `腾讯逆地理编码失败(${data.status})`)
   }
   const adInfo = data.result.ad_info || {}
   return parseGeoResult(adInfo.province, adInfo.city, adInfo.district, data.result.address)
@@ -47,8 +61,8 @@ async function reverseGeocodeAmap(latitude, longitude) {
     key,
     extensions: 'base'
   })
-  if (data.status !== '1' || !data.regeocode) {
-    throw new Error(data.info || '高德逆地理编码失败')
+  if (String(data.status) !== '1' || !data.regeocode) {
+    throw new Error(data.info || `高德逆地理编码失败(${data.status})`)
   }
   const comp = data.regeocode.addressComponent || {}
   return parseGeoResult(comp.province, comp.city, comp.district, data.regeocode.formatted_address)
@@ -62,10 +76,12 @@ async function reverseGeocodeBaidu(latitude, longitude) {
     ak: key,
     output: 'json',
     coordtype: 'gcj02ll',
+    ret_coordtype: 'gcj02ll',
     location: `${latitude},${longitude}`
   })
-  if (data.status !== 0 || !data.result) {
-    throw new Error(data.msg || '百度逆地理编码失败')
+  if (!isSuccessStatus(data.status) || !data.result) {
+    const detail = data.msg || data.message || `status=${data.status}`
+    throw new Error(`百度逆地理编码失败：${detail}`)
   }
   const comp = data.result.addressComponent || {}
   return parseGeoResult(comp.province, comp.city, comp.district, data.result.formatted_address)
@@ -77,7 +93,7 @@ const GEOCODERS = {
   baidu: reverseGeocodeBaidu
 }
 
-/** 按 config.map.provider 调用对应逆地理编码 */
+/** 按指定 provider 逆地理编码 */
 export function reverseGeocode(latitude, longitude, provider) {
   const current = provider || getMapProvider()
   const handler = GEOCODERS[current]
@@ -85,4 +101,26 @@ export function reverseGeocode(latitude, longitude, provider) {
     return Promise.reject(new Error(`不支持的地图服务商: ${current}`))
   }
   return handler(latitude, longitude)
+}
+
+/** 依次尝试已配置 Key 的地图服务（当前 provider 优先，微信小程序建议配置腾讯 Key） */
+export async function reverseGeocodeWithFallback(latitude, longitude) {
+  const { provider, keys } = getMapConfig()
+  const order = [provider, 'tencent', 'amap', 'baidu'].filter((item, index, arr) => arr.indexOf(item) === index)
+  let lastError = null
+
+  for (const name of order) {
+    if (!keys[name]) continue
+    try {
+      const result = await GEOCODERS[name](latitude, longitude)
+      if (result.province) {
+        return result
+      }
+    } catch (err) {
+      lastError = err
+      console.warn(`[${name}] 逆地理编码失败`, err.message || err)
+    }
+  }
+
+  throw lastError || new Error('未配置可用的地图 Key')
 }

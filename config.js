@@ -10,11 +10,12 @@ export default {
    * provider: tencent | amap | baidu
    * 微信小程序 request 合法域名需配置对应 API 域名：
    *   腾讯 apis.map.qq.com | 高德 restapi.amap.com | 百度 api.map.baidu.com
+   * 逆地理编码失败时会依次尝试已配置 Key 的服务；建议微信小程序至少配置 tencent Key 作为兜底
    */
   map: {
     provider: 'tencent',
     keys: {
-      tencent: '',
+      tencent: 'SGSBZ-GCA64-KV5U3-KYK2O-CFUG6-3UBTQ',
       amap: '',
       baidu: 'eDwcbdnneleXEmLHrgH45ArCzcsPD0C6'
     }

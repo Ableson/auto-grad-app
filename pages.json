@@ -25,6 +25,16 @@
       "navigationBarTitleText": "房源"
     }
   }, {
+    "path": "pages/house/detail/index",
+    "style": {
+      "navigationBarTitleText": "标的详情"
+    }
+  }, {
+    "path": "pages/member/index",
+    "style": {
+      "navigationBarTitleText": "开通会员"
+    }
+  }, {
     "path": "pages/work/index",
     "style": {
       "navigationBarTitleText": "工作台"

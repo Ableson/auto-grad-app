@@ -1,11 +1,14 @@
 <template>
   <view class="page">
     <view class="header">
-      <view class="location-row" @click="refreshLocation">
-        <uni-icons type="location-filled" size="20" color="#2979ff"></uni-icons>
-        <text class="location-label">当前位置：</text>
-        <text class="location-value">{{ provinceName || '点击获取定位' }}</text>
-        <uni-icons type="refreshempty" size="18" color="#999"></uni-icons>
+      <view class="location-row">
+        <view class="location-main" @click="refreshLocation">
+          <uni-icons type="location-filled" size="20" color="#2979ff"></uni-icons>
+          <text class="location-label">当前位置：</text>
+          <text class="location-value">{{ locationLabel }}</text>
+          <uni-icons type="refreshempty" size="18" color="#999"></uni-icons>
+        </view>
+        <text v-if="provinceName" class="clear-btn" @click="viewNational">全国</text>
       </view>
     </view>
 
@@ -23,13 +26,18 @@
         </view>
         <text class="menu-text">切换省份</text>
       </view>
+      <view class="menu-item" @click="viewNational">
+        <view class="menu-icon nation-icon">
+          <uni-icons type="home-filled" size="32" color="#ff9900"></uni-icons>
+        </view>
+        <text class="menu-text">查看全国</text>
+      </view>
     </view>
 
     <uni-section :title="listTitle" type="line"></uni-section>
 
     <view class="house-list">
       <view v-if="loading && houseList.length === 0" class="empty-tip">加载中...</view>
-      <view v-else-if="!provinceName" class="empty-tip">请先获取定位或选择省份</view>
       <view v-else-if="houseList.length === 0" class="empty-tip">暂无房源数据</view>
 
       <view
@@ -58,7 +66,14 @@
 
 <script>
 import { listAuction } from '@/api/auction'
-import { getCurrentProvinceName, chooseProvinceManually } from '@/utils/location'
+import {
+  resolveCurrentProvince,
+  chooseProvinceManually,
+  getEffectiveLocation,
+  setManualProvincePreference,
+  clearManualProvincePreference,
+  clearLocationCache
+} from '@/utils/location'
 import { isPickingProvince, finishProvincePicker } from '@/utils/provincePicker'
 
 export default {
@@ -68,6 +83,7 @@ export default {
       houseList: [],
       total: 0,
       loading: false,
+      locating: false,
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -75,47 +91,79 @@ export default {
       }
     }
   },
-  onShow() {
-    if (isPickingProvince()) return
-    if (!this.provinceName) {
-      this.refreshLocation()
-    }
-  },
   computed: {
+    locationLabel() {
+      if (this.locating) return '定位中...'
+      return this.provinceName || '全国'
+    },
     listTitle() {
       const name = this.provinceName || '全国'
       return `${name} 拍卖房源（共 ${this.total} 条）`
     }
+  },
+  onLoad() {
+    this.applyLocation(false)
+  },
+  onShow() {
+    if (isPickingProvince()) return
   },
   methods: {
     formatTime(time) {
       if (!time) return '-'
       return String(time).replace('T', ' ').slice(0, 16)
     },
-    async refreshLocation() {
+    async applyLocation(forceRefresh = false) {
+      const effective = getEffectiveLocation({ forceRefresh })
+      if (effective) {
+        this.provinceName = effective.provinceName
+        await this.loadList()
+        return
+      }
+      await this.refreshLocation(forceRefresh)
+    },
+    async refreshLocation(forceRefresh = true) {
+      if (this.locating) return
+      this.locating = true
       uni.showLoading({ title: '定位中...' })
       try {
-        const result = await getCurrentProvinceName()
-        this.provinceName = result.provinceName
+        if (forceRefresh) {
+          clearManualProvincePreference()
+        }
+        const result = await resolveCurrentProvince({ allowManual: false, forceRefresh })
+        if (result?.provinceName) {
+          this.provinceName = result.provinceName
+        } else {
+          uni.showToast({ title: '定位失败，已展示全国房源', icon: 'none' })
+          this.provinceName = ''
+        }
         await this.loadList()
       } finally {
+        this.locating = false
         finishProvincePicker()
         uni.hideLoading()
       }
     },
     async chooseProvince() {
       try {
-        this.provinceName = await chooseProvinceManually(this.provinceName)
+        const selected = await chooseProvinceManually(this.provinceName)
+        this.provinceName = selected || ''
+        setManualProvincePreference(this.provinceName)
+        clearLocationCache()
         await this.loadList()
       } finally {
         finishProvincePicker()
       }
     },
+    viewNational() {
+      this.provinceName = ''
+      setManualProvincePreference('')
+      clearLocationCache()
+      this.loadList()
+    },
     async loadList() {
-      if (!this.provinceName) return
       this.loading = true
       try {
-        this.queryParams.provinceName = this.provinceName
+        this.queryParams.provinceName = this.provinceName || undefined
         this.queryParams.pageNum = 1
         const res = await listAuction(this.queryParams)
         this.houseList = res.rows || []
@@ -133,11 +181,14 @@ export default {
       })
     },
     openDetail(item) {
-      if (item.detailUrl) {
-        uni.navigateTo({
-          url: `/pages/common/webview/index?url=${encodeURIComponent(item.detailUrl)}`
-        })
+      if (!item.dataId) {
+        uni.showToast({ title: '暂无详情', icon: 'none' })
+        return
       }
+      const title = encodeURIComponent(item.title || '')
+      uni.navigateTo({
+        url: `/pages/house/detail/index?dataId=${encodeURIComponent(item.dataId)}&title=${title}`
+      })
     }
   }
 }
@@ -158,6 +209,13 @@ export default {
 .location-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+
+.location-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
 }
 
 .location-label {
@@ -167,11 +225,17 @@ export default {
 }
 
 .location-value {
-  flex: 1;
   margin-left: 8rpx;
   font-size: 30rpx;
   color: #333;
   font-weight: 600;
+}
+
+.clear-btn {
+  margin-left: 16rpx;
+  font-size: 26rpx;
+  color: #2979ff;
+  flex-shrink: 0;
 }
 
 .menu-grid {
@@ -201,15 +265,14 @@ export default {
   background: #eef4ff;
 }
 
+.nation-icon {
+  background: #fff7e8;
+}
+
 .menu-text {
   margin-top: 12rpx;
   font-size: 24rpx;
   color: #333;
-}
-
-.total-text {
-  font-size: 24rpx;
-  color: #999;
 }
 
 .house-list {

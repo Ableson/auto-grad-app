@@ -29,30 +29,17 @@ RuoYi App 移动解决方案，采用uniapp框架，一份代码多终端适配�
 
 <img src="https://oscimg.oschina.net/oscnet/up-26c76dc90b92acdbd9ac8cd5252f07c8ad9.jpg" alt="小程序演示"/>
 
-## 演示图
-
-<table>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-21f6f842fdc94540469b4eb43fdadbaf7f8.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-a6f23cf9a371a30165e135eff6d9ae89a9d.png"/></td>
-		<td><img src="https://oscimg.oschina.net/oscnet/up-ff5f62016bf6624c1ff27eee57499dccd44.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-b9a582fdb26ec69d407fabd044d2c8494df.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-96427ee08fca29d77934cfc8d1b1a637cef.png"/></td>
-		<td><img src="https://oscimg.oschina.net/oscnet/up-5fdadc582d24cccd7727030d397b63185a3.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-0a36797b6bcc50c36d40c3c782665b89efc.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-d77995cc00687cedd00d5ac7d68a07ea276.png"/></td>
-		<td><img src="https://oscimg.oschina.net/oscnet/up-fa8f5ab20becf59b4b38c1b92a9989e7109.png"/></td>
-    </tr>
-</table>
 # 二次开发
 
+### 在小程序后台配置request合法域名（按使用的 provider）：
 ```
-在小程序后台配置 request 合法域名（按使用的 provider）：
 腾讯：apis.map.qq.com
 高德：restapi.amap.com
 百度：api.map.baidu.com
+```
+### 微信小程序里百度 AK 常因以下原因失败，请检查：
+```
+百度地图开放平台 中 AK 类型选「微信小程序」，并绑定 AppId：wx5bd6921080492df7
+微信公众平台 → 开发管理 → 服务器域名，添加 https://api.map.baidu.com
+推荐：在 config.js 的 map.keys.tencent 填入 腾讯位置服务 Key（免费），作为自动兜底；微信小程序与腾讯地图兼容性最好
 ```
