@@ -42,11 +42,29 @@
   import { uploadAvatar } from "@/api/system/user"
   
   const baseUrl = config.baseUrl
-	let sysInfo = uni.getSystemInfoSync()
-	let SCREEN_WIDTH = sysInfo.screenWidth
+
+	function readSystemMetrics() {
+		let screenWidth = 375
+		let pixelRatio = 2
+		try {
+			if (typeof uni.getWindowInfo === 'function') {
+				const win = uni.getWindowInfo()
+				screenWidth = win.windowWidth || win.screenWidth || screenWidth
+				pixelRatio = win.pixelRatio || pixelRatio
+			} else {
+				const sys = uni.getSystemInfoSync()
+				screenWidth = sys.windowWidth || sys.screenWidth || screenWidth
+				pixelRatio = sys.pixelRatio || pixelRatio
+			}
+		} catch (err) {
+			console.warn('读取屏幕信息失败，使用默认值', err)
+		}
+		return { screenWidth, pixelRatio }
+	}
+
+	const { screenWidth: SCREEN_WIDTH, pixelRatio: PR } = readSystemMetrics()
 	let PAGE_X, // 手按下的x位置
 		PAGE_Y, // 手按下y的位置 
-		PR = sysInfo.pixelRatio, // dpi
 		T_PAGE_X, // 手移动的时候x的位置
 		T_PAGE_Y, // 手移动的时候Y的位置
 		CUT_L, // 初始化拖拽元素的left值
@@ -60,7 +78,7 @@
 		IMG_REAL_H, // 图片实际的高度
 		DRAFG_MOVE_RATIO = 1, //移动时候的比例,
 		INIT_DRAG_POSITION = 100, // 初始化屏幕宽度和裁剪区域的宽度之差，用于设置初始化裁剪的宽度
-		DRAW_IMAGE_W = sysInfo.screenWidth // 设置生成的图片宽度
+		DRAW_IMAGE_W = SCREEN_WIDTH // 设置生成的图片宽度
 
 	export default {
 		/**
@@ -92,7 +110,8 @@
 				cutL: 0,
 				cutT: 0,
 				cutB: SCREEN_WIDTH,
-				cutR: '100%',
+				cutR: 0,
+				localImageSrc: '',
 				qualityWidth: DRAW_IMAGE_W,
 				innerAspectRadio: DRAFG_MOVE_RATIO
 			}
@@ -103,7 +122,38 @@
 		onReady: function () {
 			this.loadImage()
 		},
+		onShow: function () {
+			const avatar = useUserStore().avatar
+			if (avatar && avatar !== this.imageSrc) {
+				this.imageSrc = avatar
+				this.isShowImg = false
+				this.loadImage()
+			}
+		},
 		methods: {
+			resolveLocalImageSrc(src) {
+				return new Promise((resolve, reject) => {
+					if (!src) {
+						reject(new Error('empty src'))
+						return
+					}
+					if (/^https?:\/\//.test(src)) {
+						uni.downloadFile({
+							url: src,
+							success: (res) => {
+								if (res.statusCode === 200 && res.tempFilePath) {
+									resolve(res.tempFilePath)
+								} else {
+									reject(new Error('download failed'))
+								}
+							},
+							fail: reject
+						})
+						return
+					}
+					resolve(src)
+				})
+			},
 			setData: function (obj) {
 				let that = this
 				Object.keys(obj).forEach(function (key) {
@@ -123,72 +173,75 @@
 			},
 			loadImage: function () {
 				var _this = this
+				if (!_this.imageSrc) {
+					_this.setData({ isShowImg: false, localImageSrc: '' })
+					return
+				}
+				uni.showLoading({ title: '加载中...' })
+				_this.resolveLocalImageSrc(_this.imageSrc).then((localSrc) => {
+					uni.getImageInfo({
+						src: localSrc,
+						success: function success(res) {
+							const imageRatio = res.width / res.height || 1
+							let cropperW, cropperH, cropperL, cropperT
 
-				uni.getImageInfo({
-					src: _this.imageSrc,
-					success: function success(res) {
-						IMG_RATIO = 1 / 1
-						if (IMG_RATIO >= 1) {
-							IMG_REAL_W = SCREEN_WIDTH
-							IMG_REAL_H = SCREEN_WIDTH / IMG_RATIO
-						} else {
-							IMG_REAL_W = SCREEN_WIDTH * IMG_RATIO
-							IMG_REAL_H = SCREEN_WIDTH
-						}
-						let minRange = IMG_REAL_W > IMG_REAL_H ? IMG_REAL_W : IMG_REAL_H
-						INIT_DRAG_POSITION = minRange > INIT_DRAG_POSITION ? INIT_DRAG_POSITION : minRange
-						// 根据图片的宽高显示不同的效果   保证图片可以正常显示
-						if (IMG_RATIO >= 1) {
-							let cutT = Math.ceil((SCREEN_WIDTH / IMG_RATIO - (SCREEN_WIDTH / IMG_RATIO - INIT_DRAG_POSITION)) / 2)
-							let cutB = cutT
-							let cutL = Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH + INIT_DRAG_POSITION) / 2)
-							let cutR = cutL
-							_this.setData({
-								cropperW: SCREEN_WIDTH,
-								cropperH: SCREEN_WIDTH / IMG_RATIO,
-								// 初始化left right
-								cropperL: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH) / 2),
-								cropperT: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH / IMG_RATIO) / 2),
-								cutL: cutL,
-								cutT: cutT,
-								cutR: cutR,
-								cutB: cutB,
-								// 图片缩放值
-								imageW: IMG_REAL_W,
-								imageH: IMG_REAL_H,
-								scaleP: IMG_REAL_W / SCREEN_WIDTH,
-								qualityWidth: DRAW_IMAGE_W,
-								innerAspectRadio: IMG_RATIO
-							})
-						} else {
-							let cutL = Math.ceil((SCREEN_WIDTH * IMG_RATIO - (SCREEN_WIDTH * IMG_RATIO)) / 2)
-							let cutR = cutL
-							let cutT = Math.ceil((SCREEN_WIDTH - INIT_DRAG_POSITION) / 2)
-							let cutB = cutT
-							_this.setData({
-								cropperW: SCREEN_WIDTH * IMG_RATIO,
-								cropperH: SCREEN_WIDTH,
-								// 初始化left right
-								cropperL: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH * IMG_RATIO) / 2),
-								cropperT: Math.ceil((SCREEN_WIDTH - SCREEN_WIDTH) / 2),
+							// 图片按比例缩放在 SCREEN_WIDTH 正方形容器内
+							if (imageRatio >= 1) {
+								cropperW = SCREEN_WIDTH
+								cropperH = SCREEN_WIDTH / imageRatio
+								cropperL = 0
+								cropperT = Math.ceil((SCREEN_WIDTH - cropperH) / 2)
+							} else {
+								cropperH = SCREEN_WIDTH
+								cropperW = SCREEN_WIDTH * imageRatio
+								cropperL = Math.ceil((SCREEN_WIDTH - cropperW) / 2)
+								cropperT = 0
+							}
 
-								cutL: cutL,
-								cutT: cutT,
-								cutR: cutR,
-								cutB: cutB,
-								// 图片缩放值
-								imageW: IMG_REAL_W,
-								imageH: IMG_REAL_H,
-								scaleP: IMG_REAL_W / SCREEN_WIDTH,
+							// 默认正方形裁剪框，居中
+							const minSide = Math.min(cropperW, cropperH)
+							const margin = Math.min(100, Math.floor(minSide * 0.08))
+							const cropSide = minSide - margin * 2
+							const cutL = Math.ceil((cropperW - cropSide) / 2)
+							const cutT = Math.ceil((cropperH - cropSide) / 2)
+							const cutR = cropperW - cropSide - cutL
+							const cutB = cropperH - cropSide - cutT
+
+							IMG_RATIO = 1
+							IMG_REAL_W = cropperW
+							IMG_REAL_H = cropperH
+
+							_this.setData({
+								localImageSrc: localSrc,
+								cropperInitW: SCREEN_WIDTH,
+								cropperInitH: SCREEN_WIDTH,
+								cropperW,
+								cropperH,
+								cropperL,
+								cropperT,
+								cutL,
+								cutT,
+								cutR,
+								cutB,
+								imageW: cropperW,
+								imageH: cropperH,
+								scaleP: cropperW / SCREEN_WIDTH,
 								qualityWidth: DRAW_IMAGE_W,
-								innerAspectRadio: IMG_RATIO
+								innerAspectRadio: imageRatio,
+								isShowImg: true
 							})
+							uni.hideLoading()
+						},
+						fail: function () {
+							uni.hideLoading()
+							uni.showToast({ title: '图片加载失败', icon: 'none' })
+							_this.setData({ isShowImg: false, localImageSrc: '' })
 						}
-						_this.setData({
-							isShowImg: true
-						})
-						uni.hideLoading()
-					}
+					})
+				}).catch(() => {
+					uni.hideLoading()
+					uni.showToast({ title: '图片加载失败', icon: 'none' })
+					_this.setData({ isShowImg: false, localImageSrc: '' })
 				})
 			},
 			// 拖动时候触发的touchStart事件
@@ -232,35 +285,58 @@
 			// 获取图片
 			getImageInfo() {
 				var _this = this
-				uni.showLoading({
-					title: '图片生成中...',
-				})
-				// 将图片写入画布
+				if (!_this.isShowImg || !_this.localImageSrc) {
+					uni.showToast({ title: '请先选择头像', icon: 'none' })
+					return
+				}
+				const imageW = _this.imageW
+				const imageH = _this.imageH
+				const cutL = Number(_this.cutL) || 0
+				const cutT = Number(_this.cutT) || 0
+				const cutR = Number(_this.cutR) || 0
+				const cutB = Number(_this.cutB) || 0
+				if (!imageW || !imageH) {
+					uni.showToast({ title: '图片未就绪，请重新选择', icon: 'none' })
+					return
+				}
+				uni.showLoading({ title: '图片生成中...' })
 				const ctx = uni.createCanvasContext('myCanvas')
-				ctx.drawImage(_this.imageSrc, 0, 0, IMG_REAL_W, IMG_REAL_H)
-				ctx.draw(true, () => {
-					// 获取画布要裁剪的位置和宽度   均为百分比 * 画布中图片的宽度    保证了在微信小程序中裁剪的图片模糊  位置不对的问题 canvasT = (_this.cutT / _this.cropperH) * (_this.imageH / pixelRatio)
-					var canvasW = ((_this.cropperW - _this.cutL - _this.cutR) / _this.cropperW) * IMG_REAL_W
-					var canvasH = ((_this.cropperH - _this.cutT - _this.cutB) / _this.cropperH) * IMG_REAL_H
-					var canvasL = (_this.cutL / _this.cropperW) * IMG_REAL_W
-					var canvasT = (_this.cutT / _this.cropperH) * IMG_REAL_H
+				ctx.clearRect(0, 0, imageW, imageH)
+				ctx.drawImage(_this.localImageSrc, 0, 0, imageW, imageH)
+				ctx.draw(false, () => {
+					const canvasW = ((_this.cropperW - cutL - cutR) / _this.cropperW) * imageW
+					const canvasH = ((_this.cropperH - cutT - cutB) / _this.cropperH) * imageH
+					const canvasL = (cutL / _this.cropperW) * imageW
+					const canvasT = (cutT / _this.cropperH) * imageH
+					const exportSize = Math.round(Math.min(canvasW, canvasH))
+					if (exportSize <= 0) {
+						uni.hideLoading()
+						uni.showToast({ title: '裁剪区域无效，请重选', icon: 'none' })
+						return
+					}
 					uni.canvasToTempFilePath({
 						x: canvasL,
 						y: canvasT,
 						width: canvasW,
 						height: canvasH,
-						destWidth: canvasW,
-						destHeight: canvasH,
-						quality: 0.5,
+						destWidth: exportSize,
+						destHeight: exportSize,
+						quality: 0.8,
 						canvasId: 'myCanvas',
 						success: function (res) {
-							uni.hideLoading()
-							let data = {name: 'avatarfile', filePath: res.tempFilePath}
+							const data = { name: 'avatarfile', filePath: res.tempFilePath }
 							uploadAvatar(data).then(response => {
 								useUserStore().SET_AVATAR(baseUrl + response.imgUrl)
-								uni.showToast({ title: "修改成功", icon: 'success' })
+								uni.hideLoading()
+								uni.showToast({ title: '修改成功', icon: 'success' })
 								uni.navigateBack()
+							}).catch(() => {
+								uni.hideLoading()
 							})
+						},
+						fail: function () {
+							uni.hideLoading()
+							uni.showToast({ title: '生成图片失败', icon: 'none' })
 						}
 					})
 				})

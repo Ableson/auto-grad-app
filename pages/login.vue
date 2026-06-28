@@ -57,6 +57,7 @@
   import { getToken } from '@/utils/auth'
   import { getCodeImg } from '@/api/login'
   import { useConfigStore, useUserStore } from '@/store'
+  import { syncLocationToServer } from '@/utils/userLocation'
 
   const { proxy } = getCurrentInstance()
   const globalConfig = useConfigStore().config
@@ -148,7 +149,8 @@
   }
 
   function loginSuccess() {
-    return useUserStore().getInfo().then(() => {
+    return useUserStore().getInfo().then(async () => {
+      await syncLocationToServer().catch(() => {})
       proxy.$tab.reLaunch('/pages/index')
     })
   }

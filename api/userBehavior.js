@@ -33,3 +33,12 @@ export function getBrowseList() {
     method: 'get'
   })
 }
+
+/** 分页行为列表 type: favorite | browse */
+export function getBehaviorPage(params) {
+  return request({
+    url: '/house/user/behavior/page',
+    method: 'get',
+    params
+  })
+}

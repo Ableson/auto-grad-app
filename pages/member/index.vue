@@ -1,7 +1,7 @@
 <template>
   <view class="member-page">
     <view class="hero-card">
-      <uni-icons type="vip-filled" size="48" color="#ffb020"></uni-icons>
+      <uni-icons type="vip-filled" size="48" color="#2979ff"></uni-icons>
       <text class="hero-title">开通会员</text>
       <text class="hero-desc">解锁法拍原站链接，快速跳转阿里/京东拍卖页面</text>
     </view>
@@ -14,7 +14,7 @@
       </view>
       <view class="benefit-item">
         <uni-icons type="checkmarkempty" size="18" color="#18bc37"></uni-icons>
-        <text>链接服务端加密保护，非会员无法获取</text>
+        <text>专属昵称颜色与头像标识</text>
       </view>
       <view class="benefit-item">
         <uni-icons type="checkmarkempty" size="18" color="#18bc37"></uni-icons>
@@ -22,28 +22,35 @@
       </view>
     </view>
 
-    <view class="plan-card">
-      <view class="plan-header">
-        <text class="plan-name">月度会员</text>
-        <view class="plan-price">
-          <text class="price-symbol">¥</text>
-          <text class="price-value">29</text>
-          <text class="price-unit">/月</text>
+    <view class="plan-list">
+      <view
+        v-for="plan in plans"
+        :key="plan.id"
+        class="plan-card"
+        :class="{ active: selectedPlanId === plan.id }"
+        @click="selectedPlanId = plan.id"
+      >
+        <view class="plan-header">
+          <text class="plan-name">{{ plan.planName }}</text>
+          <view class="plan-price">
+            <text class="price-symbol">¥</text>
+            <text class="price-value">{{ plan.price }}</text>
+          </view>
         </view>
+        <text class="plan-tip">{{ planTip(plan) }}</text>
       </view>
-      <text class="plan-tip">支付功能开发中，当前为体验开通</text>
     </view>
 
     <button class="purchase-btn" :loading="purchasing" @click="handlePurchase">
       立即开通
     </button>
 
-    <text class="footer-tip">开通即表示同意《会员服务协议》</text>
+    <text class="footer-tip">支付功能开发中，当前为体验开通</text>
   </view>
 </template>
 
 <script>
-import { purchaseMember } from '@/api/member'
+import { getMemberPlans, purchaseMember } from '@/api/member'
 import { refreshMemberStatus } from '@/utils/member'
 import { getToken } from '@/utils/auth'
 
@@ -51,6 +58,8 @@ export default {
   data() {
     return {
       dataId: '',
+      plans: [],
+      selectedPlanId: null,
       purchasing: false
     }
   },
@@ -69,18 +78,39 @@ export default {
           }
         }
       })
+      return
     }
+    this.loadPlans()
   },
   methods: {
+    planTip(plan) {
+      if (plan.days < 0) return '永久有效'
+      return `${plan.days} 天有效`
+    },
+    async loadPlans() {
+      try {
+        const res = await getMemberPlans()
+        this.plans = res.data || []
+        if (this.plans.length) {
+          this.selectedPlanId = this.plans[0].id
+        }
+      } catch (err) {
+        console.error('加载套餐失败', err)
+      }
+    },
     async handlePurchase() {
       if (!getToken()) {
         uni.navigateTo({ url: '/pages/login' })
         return
       }
+      if (!this.selectedPlanId) {
+        uni.showToast({ title: '请选择套餐', icon: 'none' })
+        return
+      }
       if (this.purchasing) return
       this.purchasing = true
       try {
-        await purchaseMember()
+        await purchaseMember(this.selectedPlanId)
         await refreshMemberStatus()
         uni.showToast({ title: '开通成功', icon: 'success' })
         setTimeout(() => {
@@ -99,7 +129,7 @@ export default {
 <style scoped>
 .member-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #fff7e8 0%, #f5f6f7 280rpx);
+  background: linear-gradient(180deg, #eef4ff 0%, #f5f6f7 280rpx);
   padding: 32rpx 24rpx 60rpx;
   box-sizing: border-box;
 }
@@ -111,7 +141,7 @@ export default {
   padding: 48rpx 32rpx;
   background: #fff;
   border-radius: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(255, 176, 32, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(41, 121, 255, 0.12);
 }
 
 .hero-title {
@@ -129,16 +159,14 @@ export default {
   line-height: 1.6;
 }
 
-.benefit-card,
-.plan-card {
+.benefit-card {
   margin-top: 24rpx;
   background: #fff;
   border-radius: 20rpx;
   padding: 28rpx;
 }
 
-.benefit-title,
-.plan-name {
+.benefit-title {
   font-size: 30rpx;
   font-weight: 600;
   color: #333;
@@ -153,10 +181,33 @@ export default {
   color: #555;
 }
 
+.plan-list {
+  margin-top: 24rpx;
+}
+
+.plan-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+  border: 2rpx solid transparent;
+}
+
+.plan-card.active {
+  border-color: #2979ff;
+  background: #f5f8ff;
+}
+
 .plan-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.plan-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
 }
 
 .plan-price {
@@ -174,24 +225,19 @@ export default {
   font-weight: 700;
 }
 
-.price-unit {
-  font-size: 24rpx;
-  color: #999;
-}
-
 .plan-tip {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 12rpx;
   font-size: 22rpx;
   color: #999;
 }
 
 .purchase-btn {
-  margin-top: 48rpx;
+  margin-top: 32rpx;
   height: 92rpx;
   line-height: 92rpx;
   border-radius: 46rpx;
-  background: linear-gradient(135deg, #ffb020, #ff8c00);
+  background: linear-gradient(135deg, #5cadff, #2979ff);
   color: #fff;
   font-size: 32rpx;
   font-weight: 600;

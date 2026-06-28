@@ -12,7 +12,8 @@
   }, {
     "path": "pages/index",
     "style": {
-      "navigationBarTitleText": "首页"
+      "navigationBarTitleText": "首页",
+      "onReachBottomDistance": 120
     }
   }, {
     "path": "pages/house/map",
@@ -62,7 +63,14 @@
   }, {
     "path": "pages/mine/behavior/index",
     "style": {
-      "navigationBarTitleText": "我的收藏"
+      "navigationBarTitleText": "我的收藏",
+      "onReachBottomDistance": 120
+    }
+  }, {
+    "path": "pages/mine/space/index",
+    "style": {
+      "navigationBarTitleText": "空间",
+      "onReachBottomDistance": 120
     }
   }, {
     "path": "pages/mine/pwd/index",

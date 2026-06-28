@@ -164,6 +164,9 @@
 
       </view>
 
+      <view v-if="loadingMore" class="empty-tip">加载更多...</view>
+      <view v-else-if="!hasMore && houseList.length" class="empty-tip">没有更多了</view>
+
     </view>
 
   </view>
@@ -206,6 +209,8 @@ import {
 
 import { isPickingProvince, finishProvincePicker } from '@/utils/provincePicker'
 
+import { syncLocationToServer } from '@/utils/userLocation'
+
 
 
 const MENU_ACTIONS = [
@@ -241,6 +246,8 @@ export default {
       total: 0,
 
       loading: false,
+
+      loadingMore: false,
 
       locating: false,
 
@@ -284,8 +291,18 @@ export default {
 
       return `${name} 拍卖房源（共 ${this.total} 条）`
 
+    },
+
+    hasMore() {
+      return this.houseList.length < this.total
     }
 
+  },
+
+  onReachBottom() {
+    if (this.hasMore && !this.loading && !this.loadingMore) {
+      this.loadMore()
+    }
   },
 
   onLoad() {
@@ -356,6 +373,10 @@ export default {
 
         await this.loadList()
 
+        if (getToken()) {
+          syncLocationToServer({ location: effective }).catch(() => {})
+        }
+
         return
 
       }
@@ -395,6 +416,10 @@ export default {
         }
 
         await this.loadList()
+
+        if (getToken() && result?.provinceName) {
+          syncLocationToServer({ location: result }).catch(() => {})
+        }
 
       } finally {
 
@@ -478,9 +503,14 @@ export default {
       }
     },
 
-    async loadList() {
+    async loadList(reset = true) {
 
-      this.loading = true
+      if (reset) {
+        this.loading = true
+        this.queryParams.pageNum = 1
+      } else {
+        this.loadingMore = true
+      }
 
       try {
 
@@ -488,13 +518,17 @@ export default {
 
         this.queryParams.searchValue = this.activeSearchValue || undefined
 
-        this.queryParams.pageNum = 1
-
         const res = await listAuction(this.queryParams)
 
-        this.houseList = res.rows || []
+        const rows = res.rows || []
 
         this.total = res.total || 0
+
+        if (reset) {
+          this.houseList = rows
+        } else {
+          this.houseList = this.houseList.concat(rows)
+        }
 
       } catch (err) {
 
@@ -504,8 +538,16 @@ export default {
 
         this.loading = false
 
+        this.loadingMore = false
+
       }
 
+    },
+
+    loadMore() {
+      if (!this.hasMore || this.loadingMore) return
+      this.queryParams.pageNum += 1
+      this.loadList(false)
     },
 
     goMap() {

@@ -71,6 +71,8 @@ export function setLocationCache(result) {
   if (!result?.provinceName) return
   writeStorage(LOCATION_CACHE_KEY, {
     provinceName: result.provinceName,
+    cityName: result.cityName || '',
+    districtName: result.districtName || '',
     latitude: result.location?.latitude ?? null,
     longitude: result.location?.longitude ?? null,
     address: result.address || '',
@@ -92,6 +94,8 @@ function cacheToResult(cache) {
       : null
   return {
     provinceName: cache.provinceName,
+    cityName: cache.cityName || '',
+    districtName: cache.districtName || '',
     location,
     address: cache.address || '',
     fromCache: true
@@ -161,6 +165,8 @@ export async function resolveCurrentProvince(options = {}) {
     if (geo?.province) {
       const result = {
         provinceName: geo.province,
+        cityName: geo.city || '',
+        districtName: geo.district || '',
         location,
         address: geo.address || ''
       }
@@ -201,4 +207,17 @@ export async function getCurrentProvinceName() {
 /** 手动选择省份（空字符串表示全国） */
 export function chooseProvinceManually(current = '') {
   return openProvincePicker(current)
+}
+
+/** 构建可同步到服务端的定位 payload */
+export function buildLocationPayload(source = {}) {
+  if (!source?.provinceName) return null
+  return {
+    provinceName: source.provinceName,
+    cityName: source.cityName || '',
+    districtName: source.districtName || '',
+    address: source.address || '',
+    latitude: source.location?.latitude ?? source.latitude ?? null,
+    longitude: source.location?.longitude ?? source.longitude ?? null
+  }
 }

@@ -1,202 +1,458 @@
-<template>
-  <view class="mine-container" :style="{height: `${windowHeight}px`}">
-    <view class="header-section">
-      <view class="flex padding justify-between">
-        <view class="flex align-center">
-          <view v-if="!avatar" class="cu-avatar xl round bg-white">
-            <view class="iconfont icon-people text-gray icon"></view>
-          </view>
-          <image v-if="avatar" @click="handleToAvatar" :src="avatar" class="cu-avatar xl round" mode="widthFix">
-          </image>
-          <view v-if="!name" @click="handleToLogin" class="login-tip">
-            点击登录
-          </view>
-          <view v-if="name" @click="handleToInfo" class="user-info">
-            <view class="u_title text-ellipsis">
-              {{ displayName }}
-            </view>
-            <view v-if="needBindPhone" class="phone-tip" @click.stop="handleToEditInfo">
-              请完善手机号
-            </view>
-          </view>
-        </view>
-        <view class="setting-entry" @click="handleToInfo">
-          <uni-icons type="gear-filled" size="22" color="#ffffff"></uni-icons>
-        </view>
-      </view>
-    </view>
-
-    <view class="content-section">
-      <view class="mine-actions grid col-4 text-center">
-        <view class="action-item" @click="handleToFavorite">
-          <view class="iconfont icon-aixin text-pink icon"></view>
-          <text class="text">我的收藏</text>
-        </view>
-        <view class="action-item" @click="handleToBrowse">
-          <view class="iconfont icon-version text-blue icon"></view>
-          <text class="text">浏览足迹</text>
-        </view>
-        <view class="action-item" @click="handleBuilding">
-          <view class="iconfont icon-service text-mauve icon"></view>
-          <text class="text">敬请期待</text>
-        </view>
-        <view class="action-item" @click="handleBuilding">
-          <view class="iconfont icon-community text-green icon"></view>
-          <text class="text">敬请期待</text>
-        </view>
-      </view>
-
-      <view class="menu-list">
-        <view class="list-cell list-cell-arrow" @click="handleToEditInfo">
-          <view class="menu-item-box">
-            <view class="iconfont icon-user menu-icon"></view>
-            <view>编辑资料</view>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-</template>
-
-<script setup>
-  import { useUserStore } from '@/store'
-  import { computed , getCurrentInstance } from "vue"
-  import { onShow } from '@dcloudio/uni-app'
-  import { getToken } from '@/utils/auth'
-
-  const { proxy } = getCurrentInstance()
-  const userStore = useUserStore()
-  const name = computed(() => userStore.name)
-  const avatar = computed(() => userStore.avatar)
-
-  function hasBoundPhone(phone) {
-    return /^1\d{10}$/.test(phone || '')
-  }
-
-  const needBindPhone = computed(() => !hasBoundPhone(userStore.phone))
-  const displayName = computed(() => {
-    const value = name.value || ''
-    if (/^1\d{10}$/.test(value)) {
-      return value.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
-    }
-    return value
-  })
-  const windowHeight = computed(() => uni.getSystemInfoSync().windowHeight - 50)
-
-  onShow(() => {
-    if (getToken()) {
-      userStore.getInfo().catch(() => {})
-    }
-  })
-
-  function handleToInfo() {
-    proxy.$tab.navigateTo('/pages/mine/info/index')
-  }
-
-  function handleToEditInfo() {
-    proxy.$tab.navigateTo('/pages/mine/info/edit')
-  }
-
-  function handleToFavorite() {
-    proxy.$tab.navigateTo('/pages/mine/behavior/index?type=favorite')
-  }
-
-  function handleToBrowse() {
-    proxy.$tab.navigateTo('/pages/mine/behavior/index?type=browse')
-  }
-
-  function handleToLogin() {
-    proxy.$tab.reLaunch('/pages/login')
-  }
-
-  function handleToAvatar() {
-    proxy.$tab.navigateTo('/pages/mine/avatar/index')
-  }
-
-  function handleBuilding() {
-    proxy.$modal.showToast('模块建设中~')
-  }
-</script>
-
-<style lang="scss" scoped>
-  page {
-    background-color: #f5f6f7;
-  }
-
-  .mine-container {
-    width: 100%;
-    height: 100%;
-
-    .header-section {
-      padding: 15px 15px 45px 15px;
-      background-color: #3c96f3;
-      color: white;
-
-      .login-tip {
-        font-size: 18px;
-        margin-left: 10px;
-      }
-
-      .setting-entry {
-        padding: 8rpx;
-      }
-
-      .cu-avatar {
-        border: 2px solid #eaeaea;
-
-        .icon {
-          font-size: 40px;
-        }
-      }
-
-      .user-info {
-        margin-left: 15px;
-        flex: 1;
-        min-width: 0;
-        max-width: 420rpx;
-
-        .u_title {
-          font-size: 18px;
-          line-height: 30px;
-        }
-
-        .text-ellipsis {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .phone-tip {
-          margin-top: 4rpx;
-          font-size: 24rpx;
-          color: #ffe58f;
-        }
-      }
-    }
-
-    .content-section {
-      position: relative;
-      top: -50px;
-
-      .mine-actions {
-        margin: 15px 15px;
-        padding: 20px 0px;
-        border-radius: 8px;
-        background-color: white;
-
-        .action-item {
-          .icon {
-            font-size: 28px;
-          }
-
-          .text {
-            display: block;
-            font-size: 13px;
-            margin: 8px 0px;
-          }
-        }
-      }
-    }
-  }
-</style>
-
+<template>
+  <view class="mine-page">
+    <view class="profile-section">
+      <view class="profile-main">
+        <view class="avatar-wrap" @click="handleAvatarClick">
+          <image v-if="avatar" :src="avatar" class="avatar" mode="aspectFill"></image>
+          <view v-else class="avatar avatar-placeholder">
+            <uni-icons type="person-filled" size="36" color="#ccc"></uni-icons>
+          </view>
+          <view v-if="memberActive" class="crown-badge">
+            <uni-icons type="vip-filled" size="14" color="#2979ff"></uni-icons>
+          </view>
+        </view>
+
+        <view class="profile-info">
+          <view v-if="!loggedIn" class="login-row" @click="handleToLogin">
+            <text class="login-text">点击登录</text>
+          </view>
+          <template v-else>
+            <view class="name-row">
+              <text class="nickname" :class="{ 'nickname-vip': memberActive }">{{ displayName }}</text>
+              <view class="edit-name" @click.stop="handleEditName">
+                <uni-icons type="compose" size="16" color="#999"></uni-icons>
+              </view>
+            </view>
+            <view v-if="memberActive" class="member-tag">
+              <text>{{ memberLabel }}</text>
+            </view>
+            <view v-else class="member-tag member-tag-normal">
+              <text>普通用户</text>
+            </view>
+            <view v-if="needBindPhone" class="phone-tip" @click.stop="handleToEditInfo">
+              请完善手机号
+            </view>
+          </template>
+        </view>
+
+        <view class="space-entry" @click="handleToSpace">
+          <text>空间</text>
+          <uni-icons type="right" size="14" color="#999"></uni-icons>
+        </view>
+      </view>
+
+      <view class="stats-row">
+        <view class="stat-item" @click="handleProvinceListings">
+          <text class="stat-num">{{ stats.dynamicCount || stats.provinceListingCount || 0 }}</text>
+          <text class="stat-label">动态</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="handleToFavorite">
+          <text class="stat-num">{{ stats.favoriteCount || 0 }}</text>
+          <text class="stat-label">关注</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="member-banner" @click="handleToMember">
+      <view class="banner-left">
+        <text class="banner-title">会员中心</text>
+        <text class="banner-desc">解锁法拍原站链接等高级权益</text>
+      </view>
+      <view class="banner-btn">立即开通</view>
+    </view>
+
+    <view class="quick-row">
+      <view class="quick-item" @click="handleToBrowse">
+        <view class="quick-icon browse">
+          <uni-icons type="loop" size="28" color="#2979ff"></uni-icons>
+        </view>
+        <text class="quick-text">浏览足迹</text>
+      </view>
+      <view class="quick-item" @click="handleToFavorite">
+        <view class="quick-icon favorite">
+          <uni-icons type="star-filled" size="28" color="#2979ff"></uni-icons>
+        </view>
+        <text class="quick-text">我的收藏</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { useUserStore } from '@/store'
+import { computed, ref, getCurrentInstance } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import { getToken } from '@/utils/auth'
+import { getUserCenterStats } from '@/api/userCenter'
+import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
+import { syncLocationToServer } from '@/utils/userLocation'
+
+const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
+
+const stats = ref({
+  provinceListingCount: 0,
+  dynamicCount: 0,
+  favoriteCount: 0,
+  browseCount: 0,
+  provinceName: '',
+  dynamicFilter: {},
+  recentDays: 7
+})
+const memberActive = ref(false)
+const memberLabel = ref('会员')
+
+const loggedIn = computed(() => !!getToken())
+const name = computed(() => userStore.name)
+const avatar = computed(() => userStore.avatar)
+
+function hasBoundPhone(phone) {
+  return /^1\d{10}$/.test(phone || '')
+}
+
+const needBindPhone = computed(() => loggedIn.value && !hasBoundPhone(userStore.phone))
+
+const displayName = computed(() => {
+  const value = name.value || ''
+  if (/^1\d{10}$/.test(value)) {
+    return value.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+  }
+  return value || '用户'
+})
+
+async function refreshPage() {
+  if (!loggedIn.value) {
+    memberActive.value = false
+    stats.value = { provinceListingCount: 0, favoriteCount: 0, browseCount: 0, provinceName: '' }
+    return
+  }
+  try {
+    await userStore.getInfo()
+    await syncLocationToServer()
+    await refreshMemberStatus()
+    memberActive.value = isMember()
+    memberLabel.value = getMemberDisplayText()
+    const res = await getUserCenterStats()
+    const data = res.data || res
+    stats.value = {
+      dynamicCount: data.dynamicCount || data.provinceListingCount || 0,
+      provinceListingCount: data.provinceListingCount || data.dynamicCount || 0,
+      favoriteCount: data.favoriteCount || 0,
+      browseCount: data.browseCount || 0,
+      provinceName: data.provinceName || '',
+      dynamicFilter: data.dynamicFilter || {},
+      recentDays: data.recentDays || 7
+    }
+  } catch (err) {
+    console.warn('刷新我的页失败', err)
+  }
+}
+
+onShow(() => {
+  refreshPage()
+})
+
+function handleToLogin() {
+  proxy.$tab.reLaunch('/pages/login')
+}
+
+function handleAvatarClick() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/avatar/index')
+}
+
+function handleEditName() {
+  proxy.$tab.navigateTo('/pages/mine/info/edit')
+}
+
+function handleToInfo() {
+  proxy.$tab.navigateTo('/pages/mine/info/index')
+}
+
+function handleToSpace() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/space/index')
+}
+
+function handleToEditInfo() {
+  proxy.$tab.navigateTo('/pages/mine/info/edit')
+}
+
+function handleToFavorite() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/behavior/index?type=favorite')
+}
+
+function handleToBrowse() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/behavior/index?type=browse')
+}
+
+function handleToMember() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/member/index')
+}
+
+function handleProvinceListings() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  const province = stats.value.provinceName
+  if (province) {
+    uni.switchTab({ url: '/pages/index' })
+  } else {
+    proxy.$modal.showToast('请先允许定位或选择省份')
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+page {
+  background: #f4f4f4;
+}
+
+.mine-page {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+.top-bar {
+  padding: 16rpx 24rpx 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  padding: 8rpx;
+}
+
+.profile-section {
+  background: #fff;
+  margin: 0 0 20rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.profile-main {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8rpx;
+}
+
+.avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+}
+
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crown-badge {
+  position: absolute;
+  right: -4rpx;
+  top: -4rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: #fff;
+  border: 2rpx solid #2979ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 24rpx;
+  padding-top: 8rpx;
+}
+
+.login-text {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.nickname {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #333;
+  max-width: 320rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nickname-vip {
+  color: #2979ff;
+}
+
+.edit-name {
+  padding: 4rpx;
+}
+
+.member-tag {
+  display: inline-block;
+  margin-top: 10rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  background: #eef4ff;
+  font-size: 22rpx;
+  color: #2979ff;
+  line-height: 1.4;
+  max-width: 420rpx;
+}
+
+.member-tag-normal {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.phone-tip {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #ff9900;
+}
+
+.space-entry {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding-top: 16rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  margin-top: 32rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-num {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+.stat-label {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.stat-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: #eee;
+}
+
+.member-banner {
+  margin: 0 24rpx 20rpx;
+  padding: 28rpx 24rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #5cadff, #2979ff);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.banner-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.banner-btn {
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #2979ff;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.quick-row {
+  margin: 0 24rpx;
+  padding: 32rpx 40rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  display: flex;
+  justify-content: space-around;
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.quick-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 20rpx;
+  background: #f5f8ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-text {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+</style>
