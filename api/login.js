@@ -18,6 +18,22 @@ export function login(username, password, code, uuid) {
   })
 }
 
+/** 微信小程序一键登录 */
+export function wxLogin(code, profile = {}) {
+  return request({
+    url: '/house/wechat/login',
+    method: 'post',
+    headers: {
+      isToken: false
+    },
+    data: {
+      code,
+      nickName: profile.nickName || '',
+      avatarUrl: profile.avatarUrl || ''
+    }
+  })
+}
+
 // 注册方法
 export function register(data) {
   return request({

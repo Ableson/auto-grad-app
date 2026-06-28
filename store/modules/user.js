@@ -4,7 +4,7 @@ import config from '@/config'
 import storage from '@/utils/storage'
 import constant from '@/utils/constant'
 import { isHttp, isEmpty } from "@/utils/validate"
-import { getInfo, login, logout } from '@/api/login'
+import { getInfo, login, logout, wxLogin } from '@/api/login'
 import { getToken, removeToken, setToken } from '@/utils/auth'
 import defAva from '@/static/images/profile.jpg'
 
@@ -55,6 +55,31 @@ export const useUserStore = defineStore('user', () => {
         resolve()
       }).catch(error => {
         reject(error)
+      })
+    })
+  }
+
+  // 微信一键登录
+  const wxLoginAction = (profile = {}) => {
+    return new Promise((resolve, reject) => {
+      uni.login({
+        provider: 'weixin',
+        success: (loginRes) => {
+          if (!loginRes.code) {
+            reject(new Error('获取微信 code 失败'))
+            return
+          }
+          wxLogin(loginRes.code, profile).then(res => {
+            setToken(res.token)
+            SET_TOKEN(res.token)
+            resolve()
+          }).catch(error => {
+            reject(error)
+          })
+        },
+        fail: (err) => {
+          reject(err)
+        }
       })
     })
   }
@@ -111,6 +136,7 @@ export const useUserStore = defineStore('user', () => {
     permissions,
     SET_AVATAR,
     login: loginAction,
+    wxLogin: wxLoginAction,
     getInfo: getInfoAction,
     logOut: logOutAction
   }

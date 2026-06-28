@@ -144,6 +144,7 @@ import { listAuctionFile } from '@/api/auctionFile'
 import { getAuctionByDataId, getAuctionLink } from '@/api/auction'
 import { getAuctionStatusLabel } from '@/utils/auctionStatus'
 import { isMember, refreshMemberStatus, goMemberPurchase } from '@/utils/member'
+import { openWebView } from '@/utils/webview'
 import {
   FILE_TYPE_COVER,
   FILE_TYPE_DETAIL_IMAGE,
@@ -233,14 +234,12 @@ export default {
       uni.showLoading({ title: '加载中...' })
       try {
         const res = await getAuctionLink(this.dataId)
-        const url = res.url
+        const url = res.url || res.data?.url
         if (!url) {
           uni.showToast({ title: '暂无法拍链接', icon: 'none' })
           return
         }
-        uni.navigateTo({
-          url: `/pages/common/webview/index?url=${encodeURIComponent(url)}`
-        })
+        openWebView(url, { title: '法拍详情' })
       } catch (err) {
         console.error('获取法拍链接失败', err)
       } finally {
