@@ -49,3 +49,10 @@ RuoYi App 移动解决方案，采用uniapp框架，一份代码多终端适配�
     </tr>
 </table>
 # 二次开发
+
+```
+在小程序后台配置 request 合法域名（按使用的 provider）：
+腾讯：apis.map.qq.com
+高德：restapi.amap.com
+百度：api.map.baidu.com
+```

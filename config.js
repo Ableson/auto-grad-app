@@ -16,7 +16,7 @@ export default {
     keys: {
       tencent: '',
       amap: '',
-      baidu: ''
+      baidu: 'eDwcbdnneleXEmLHrgH45ArCzcsPD0C6'
     }
   },
 
