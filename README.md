@@ -70,3 +70,12 @@ RuoYi App 移动解决方案，采用uniapp框架，一份代码多终端适配�
 最后 tokenService.createToken(loginUser) 签发 JWT，完成登录
 所以：同一微信用户每次一键登录，都是「openid 认人 + 发 token」，和密码无关。
 ```
+### 接入微信支付
+```
+会员页 pages/member/index.vue
+点击「立即开通」流程：
+调用 POST /house/member/pay/prepay 创建订单
+调起 uni.requestPayment
+轮询 GET /house/member/pay/status 确认支付
+刷新会员状态
+```

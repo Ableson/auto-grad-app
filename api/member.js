@@ -16,7 +16,25 @@ export function getMemberPlans() {
   })
 }
 
-/** 开通会员（占位，后期对接支付） */
+/** 创建会员支付订单，返回 payParams */
+export function createMemberPayOrder(planId) {
+  return request({
+    url: '/house/member/pay/prepay',
+    method: 'post',
+    data: { planId }
+  })
+}
+
+/** 查询会员支付订单状态 */
+export function queryMemberPayOrder(orderNo) {
+  return request({
+    url: '/house/member/pay/status',
+    method: 'get',
+    params: { orderNo }
+  })
+}
+
+/** 开通会员（0 元或体验环境，正式环境请走 createMemberPayOrder） */
 export function purchaseMember(planId) {
   return request({
     url: '/house/member/purchase',

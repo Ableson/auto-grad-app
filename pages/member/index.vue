@@ -45,14 +45,15 @@
       立即开通
     </button>
 
-    <text class="footer-tip">支付功能开发中，当前为体验开通</text>
+    <text class="footer-tip">支付成功后会员权益立即生效</text>
   </view>
 </template>
 
 <script>
-import { getMemberPlans, purchaseMember } from '@/api/member'
+import { getMemberPlans, createMemberPayOrder, queryMemberPayOrder } from '@/api/member'
 import { refreshMemberStatus } from '@/utils/member'
 import { getToken } from '@/utils/auth'
+import { requestWechatPay, waitForMemberPaySuccess } from '@/utils/wxPay'
 
 export default {
   data() {
@@ -110,13 +111,34 @@ export default {
       if (this.purchasing) return
       this.purchasing = true
       try {
-        await purchaseMember(this.selectedPlanId)
+        const res = await createMemberPayOrder(this.selectedPlanId)
+        if (res.paid) {
+          await refreshMemberStatus()
+          uni.showToast({ title: '开通成功', icon: 'success' })
+          setTimeout(() => {
+            uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/mine/index' }) })
+          }, 1200)
+          return
+        }
+        const payParams = res.payParams
+        if (!payParams) {
+          uni.showToast({ title: '获取支付参数失败', icon: 'none' })
+          return
+        }
+        await requestWechatPay(payParams)
+        await waitForMemberPaySuccess(queryMemberPayOrder, res.orderNo)
         await refreshMemberStatus()
         uni.showToast({ title: '开通成功', icon: 'success' })
         setTimeout(() => {
           uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/mine/index' }) })
         }, 1200)
       } catch (err) {
+        const msg = err && err.message ? err.message : ''
+        if (msg === 'cancel') {
+          uni.showToast({ title: '已取消支付', icon: 'none' })
+        } else if (msg) {
+          uni.showToast({ title: msg, icon: 'none' })
+        }
         console.error('开通会员失败', err)
       } finally {
         this.purchasing = false
