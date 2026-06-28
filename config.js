@@ -12,6 +12,9 @@ export default {
    *   腾讯 apis.map.qq.com | 高德 restapi.amap.com | 百度 api.map.baidu.com
    * 逆地理编码失败时会依次尝试已配置 Key 的服务；建议微信小程序至少配置 tencent Key 作为兜底
    */
+  /** 本地展示的搜索历史条数（超出移除最早一条；与服务端 house.search.history-max 可分别配置） */
+  searchHistoryMax: 10,
+
   map: {
     provider: 'tencent',
     keys: {

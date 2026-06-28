@@ -49,3 +49,24 @@ RuoYi App 移动解决方案，采用uniapp框架，一份代码多终端适配�
 存量用户：需重新一键登录（授权手机号），系统会把账号迁移为手机号，昵称改为 用户+后4位。
 若提示「该手机号已被其他账号绑定」，说明该手机号已在系统中绑定其他账号。
 ```
+
+### 微信一键登录的密码是占位作用 谁也不知道密码是多少
+```
+微信登录认的是 openid，不是密码
+流程在 WxLoginServiceImpl.loginByCode 里是这样的：
+
+        String openid = session.getOpenid();
+        SysUser user = userService.selectUserByWxOpenid(openid);
+        if (user == null) {
+            user = registerWxUser(openid, body);
+        } else {
+            updateWxProfile(user, body);
+        }
+前端 uni.login 拿到 code
+后端调微信 jscode2session，换成该用户固定的 openid
+用 wx_openid 查库：
+第一次：查不到 → registerWxUser 注册，此时才写入随机 UUID 密码
+之后每次：能查到 → 直接走老用户逻辑，不校验、不修改密码
+最后 tokenService.createToken(loginUser) 签发 JWT，完成登录
+所以：同一微信用户每次一键登录，都是「openid 认人 + 发 token」，和密码无关。
+```
