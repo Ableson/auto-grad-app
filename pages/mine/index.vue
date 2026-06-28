@@ -62,6 +62,11 @@
       <view class="banner-btn">立即开通</view>
     </view>
 
+    <view v-if="loggedIn" class="order-entry" @click="handleToOrder">
+      <text class="order-entry-text">充值记录</text>
+      <uni-icons type="right" size="14" color="#999"></uni-icons>
+    </view>
+
     <view class="quick-row">
       <view class="quick-item" @click="handleToBrowse">
         <view class="quick-icon browse">
@@ -207,6 +212,14 @@ function handleToMember() {
     return
   }
   proxy.$tab.navigateTo('/pages/member/index')
+}
+
+function handleToOrder() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/order/index')
 }
 
 function handleProvinceListings() {
@@ -423,6 +436,21 @@ page {
   color: #2979ff;
   font-size: 24rpx;
   font-weight: 600;
+}
+
+.order-entry {
+  margin: 0 24rpx 20rpx;
+  padding: 24rpx 28rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-entry-text {
+  font-size: 28rpx;
+  color: #333;
 }
 
 .quick-row {

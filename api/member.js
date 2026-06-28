@@ -34,6 +34,15 @@ export function queryMemberPayOrder(orderNo) {
   })
 }
 
+/** 我的充值记录（分页） */
+export function getMemberOrderPage(params) {
+  return request({
+    url: '/house/member/order/my/page',
+    method: 'get',
+    params
+  })
+}
+
 /** 开通会员（0 元或体验环境，正式环境请走 createMemberPayOrder） */
 export function purchaseMember(planId) {
   return request({

@@ -73,6 +73,12 @@
       "onReachBottomDistance": 120
     }
   }, {
+    "path": "pages/mine/order/index",
+    "style": {
+      "navigationBarTitleText": "充值记录",
+      "onReachBottomDistance": 120
+    }
+  }, {
     "path": "pages/mine/pwd/index",
     "style": {
       "navigationBarTitleText": "修改密码"
