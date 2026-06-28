@@ -22,6 +22,15 @@ export function getUserProfile() {
   })
 }
 
+// 修改用户个人信息（小程序：填写手机号时同步账号）
+export function updateHouseUserProfile(data) {
+  return request({
+    url: '/house/user/profile',
+    method: 'put',
+    data: data
+  })
+}
+
 // 修改用户个人信息
 export function updateUserProfile(data) {
   return request({

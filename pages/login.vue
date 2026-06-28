@@ -7,9 +7,15 @@
 
     <!-- #ifdef MP-WEIXIN -->
     <view class="wx-login-content">
-      <button class="wx-login-btn" :loading="wxLoading" @click="handleWxLogin">
+      <button
+        class="wx-login-btn"
+        open-type="getPhoneNumber"
+        :loading="wxLoading"
+        @getphonenumber="handleWxPhoneLogin"
+      >
         微信一键登录
       </button>
+      <view class="wx-login-tip">将尝试获取手机号；未开通或未授权时，登录后可在个人信息中填写</view>
       <view class="toggle-pwd" @click="showPwdLogin = !showPwdLogin">
         <text>{{ showPwdLogin ? '收起账号登录' : '使用账号密码登录' }}</text>
       </view>
@@ -92,13 +98,23 @@
     })
   }
 
-  async function handleWxLogin() {
+  async function handleWxPhoneLogin(e) {
     if (wxLoading.value) return
+    const detail = e.detail || {}
+    const phoneGranted = detail.errMsg && detail.errMsg.indexOf('ok') !== -1 && detail.code
+    const phoneCode = phoneGranted ? detail.code : ''
+
     wxLoading.value = true
     proxy.$modal.loading("登录中...")
     try {
-      await useUserStore().wxLogin()
+      await useUserStore().wxLogin({ phoneCode })
       await loginSuccess()
+      const userStore = useUserStore()
+      if (!userStore.phone) {
+        proxy.$modal.msg(phoneCode
+          ? '手机号自动绑定失败，请在「编辑资料」中手动填写'
+          : '未获取手机号，请稍后在「编辑资料」中完善')
+      }
     } catch (err) {
       console.error('微信登录失败', err)
     } finally {
@@ -196,6 +212,13 @@
       margin-top: 28rpx;
       font-size: 26rpx;
       color: #666;
+    }
+
+    .wx-login-tip {
+      margin-top: 20rpx;
+      font-size: 22rpx;
+      color: #999;
+      line-height: 1.6;
     }
 
     .login-form-content {

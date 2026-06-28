@@ -18,7 +18,7 @@ export function login(username, password, code, uuid) {
   })
 }
 
-/** 微信小程序一键登录 */
+/** 微信小程序一键登录（优先自动获取手机号，未开通或未授权时可登录后手动填写） */
 export function wxLogin(code, profile = {}) {
   return request({
     url: '/house/wechat/login',
@@ -28,7 +28,7 @@ export function wxLogin(code, profile = {}) {
     },
     data: {
       code,
-      nickName: profile.nickName || '',
+      phoneCode: profile.phoneCode || '',
       avatarUrl: profile.avatarUrl || ''
     }
   })

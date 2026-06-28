@@ -14,6 +14,7 @@ export const useUserStore = defineStore('user', () => {
   const token = ref(getToken())
   const id = ref(storage.get(constant.id))
   const name = ref(storage.get(constant.name))
+  const phone = ref(storage.get(constant.phone))
   const avatar = ref(storage.get(constant.avatar))
   const roles = ref(storage.get(constant.roles))
   const permissions = ref(storage.get(constant.permissions))
@@ -28,6 +29,10 @@ export const useUserStore = defineStore('user', () => {
   const SET_NAME = (val) => {
     name.value = val
     storage.set(constant.name, val)
+  }
+  const SET_PHONE = (val) => {
+    phone.value = val
+    storage.set(constant.phone, val)
   }
   const SET_AVATAR = (val) => {
     avatar.value = val
@@ -95,6 +100,8 @@ export const useUserStore = defineStore('user', () => {
         }
         const userid = (isEmpty(user) || isEmpty(user.userId)) ? "" : user.userId
         const username = (isEmpty(user) || isEmpty(user.userName)) ? "" : user.userName
+        const nickname = (isEmpty(user) || isEmpty(user.nickName)) ? "" : user.nickName
+        const phonenumber = (isEmpty(user) || isEmpty(user.phonenumber)) ? "" : user.phonenumber
         if (res.roles && res.roles.length > 0) {
           SET_ROLES(res.roles)
           SET_PERMISSIONS(res.permissions)
@@ -102,7 +109,8 @@ export const useUserStore = defineStore('user', () => {
           SET_ROLES(['ROLE_DEFAULT'])
         }
 		SET_ID(userid)
-        SET_NAME(username)
+        SET_NAME(nickname || username)
+        SET_PHONE(phonenumber)
         SET_AVATAR(avatar)
         resolve(res)
       }).catch(error => {
@@ -131,6 +139,7 @@ export const useUserStore = defineStore('user', () => {
     token,
     id,
     name,
+    phone,
     avatar,
     roles,
     permissions,

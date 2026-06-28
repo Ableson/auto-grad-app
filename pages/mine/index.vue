@@ -13,8 +13,11 @@
             点击登录
           </view>
           <view v-if="name" @click="handleToInfo" class="user-info">
-            <view class="u_title">
-              用户名：{{ name }}
+            <view class="u_title text-ellipsis">
+              {{ displayName }}
+            </view>
+            <view v-if="needBindPhone" class="phone-tip" @click.stop="handleToEditInfo">
+              请完善手机号
             </view>
           </view>
         </view>
@@ -81,8 +84,17 @@
   import { computed , getCurrentInstance } from "vue"
 
   const { proxy } = getCurrentInstance()
-  const name = useUserStore().name
-  const avatar = computed(() => useUserStore().avatar)
+  const userStore = useUserStore()
+  const name = computed(() => userStore.name)
+  const avatar = computed(() => userStore.avatar)
+  const needBindPhone = computed(() => !userStore.phone)
+  const displayName = computed(() => {
+    const value = name.value || ''
+    if (/^1\d{10}$/.test(value)) {
+      return value.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+    }
+    return value
+  })
   const windowHeight = computed(() => uni.getSystemInfoSync().windowHeight - 50)
 
   function handleToInfo() {
@@ -152,10 +164,25 @@
 
       .user-info {
         margin-left: 15px;
+        flex: 1;
+        min-width: 0;
+        max-width: 420rpx;
 
         .u_title {
           font-size: 18px;
           line-height: 30px;
+        }
+
+        .text-ellipsis {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .phone-tip {
+          margin-top: 4rpx;
+          font-size: 24rpx;
+          color: #ffe58f;
         }
       }
     }
