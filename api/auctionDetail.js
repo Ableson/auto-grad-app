@@ -11,3 +11,12 @@ export function listAuctionDetail(query) {
     }
   })
 }
+
+/** 按 dataId 查询详情（GET /house/detail/data/{dataId}，已登录时自动记录浏览足迹） */
+export function getAuctionDetailByDataId(dataId, title) {
+  return request({
+    url: '/house/detail/data/' + dataId,
+    method: 'get',
+    params: title ? { title } : {}
+  })
+}

@@ -27,14 +27,23 @@
           <text class="placeholder-text">暂无图片</text>
         </view>
         <view class="hero-body">
-          <view v-if="hasAuctionLink" class="auction-link-btn" :class="{ locked: !isMemberUser }" @click="openAuctionLink">
-            <uni-icons type="vip-filled" size="14" :color="isMemberUser ? '#ffffff' : '#ffb020'"></uni-icons>
-            <text class="hero-title">{{ pageTitle }}</text>
+          <view class="hero-title-wrap">
+            <view v-if="hasAuctionLink" class="auction-link-btn" :class="{ locked: !isMemberUser }" @click="openAuctionLink">
+              <uni-icons type="vip-filled" size="14" :color="isMemberUser ? '#ffffff' : '#ffb020'"></uni-icons>
+              <text class="hero-title">{{ pageTitle }}</text>
+            </view>
+            <text v-else class="hero-title hero-title-only">{{ pageTitle }}</text>
           </view>
 
           <view class="hero-tags">
-            <text class="tag status">{{ statusLabel }}</text>
-            <text v-if="detail.assetAddress" class="tag address">{{ detail.assetAddress }}</text>
+            <view class="hero-tags-left">
+              <text class="tag status">{{ statusLabel }}</text>
+              <text v-if="detail.assetAddress" class="tag address">{{ detail.assetAddress }}</text>
+            </view>
+            <view class="tag tag-favorite" :class="{ active: isFavorited }" @click.stop="toggleFavorite">
+              <uni-icons :type="isFavorited ? 'star-filled' : 'star'" size="12" :color="isFavorited ? '#ffb020' : '#3F51B5'"></uni-icons>
+              <text>{{ isFavorited ? '已收藏' : '收藏' }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -139,9 +148,11 @@
 </template>
 
 <script>
-import { listAuctionDetail } from '@/api/auctionDetail'
+import { getAuctionDetailByDataId } from '@/api/auctionDetail'
 import { listAuctionFile } from '@/api/auctionFile'
 import { getAuctionByDataId, getAuctionLink } from '@/api/auction'
+import { toggleFavorite as toggleFavoriteApi, checkFavorite } from '@/api/userBehavior'
+import { getToken } from '@/utils/auth'
 import { getAuctionStatusLabel } from '@/utils/auctionStatus'
 import { isMember, refreshMemberStatus, goMemberPurchase } from '@/utils/member'
 import { openWebView } from '@/utils/webview'
@@ -160,6 +171,8 @@ export default {
       pageTitle: '标的详情',
       hasAuctionLink: false,
       isMemberUser: false,
+      isFavorited: false,
+      favoriteLoading: false,
       loading: true,
       detail: null,
       imageList: [],
@@ -197,8 +210,48 @@ export default {
   },
   onShow() {
     this.syncMemberStatus()
+    this.syncFavoriteStatus()
   },
   methods: {
+    async syncFavoriteStatus() {
+      if (!this.dataId || !getToken()) {
+        this.isFavorited = false
+        return
+      }
+      try {
+        const res = await checkFavorite(this.dataId)
+        this.isFavorited = !!(res.favorited || res.data?.favorited)
+      } catch (err) {
+        this.isFavorited = false
+      }
+    },
+    async toggleFavorite() {
+      if (!this.dataId) return
+      if (!getToken()) {
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        setTimeout(() => {
+          uni.navigateTo({ url: '/pages/login' })
+        }, 500)
+        return
+      }
+      if (this.favoriteLoading) return
+      this.favoriteLoading = true
+      try {
+        const res = await toggleFavoriteApi({
+          dataId: this.dataId,
+          title: this.pageTitle
+        })
+        this.isFavorited = !!(res.favorited ?? res.data?.favorited)
+        uni.showToast({
+          title: this.isFavorited ? '收藏成功' : '已取消收藏',
+          icon: 'none'
+        })
+      } catch (err) {
+        console.error('收藏操作失败', err)
+      } finally {
+        this.favoriteLoading = false
+      }
+    },
     async syncMemberStatus() {
       await refreshMemberStatus()
       this.isMemberUser = isMember()
@@ -287,17 +340,18 @@ export default {
       this.loading = true
       try {
         const [detailRes, fileRes, baseRes] = await Promise.all([
-          listAuctionDetail({ dataId: this.dataId, pageNum: 1, pageSize: 1 }),
+          getAuctionDetailByDataId(this.dataId, this.pageTitle),
           listAuctionFile({ dataId: this.dataId, pageNum: 1, pageSize: 200 }),
           getAuctionByDataId(this.dataId)
         ])
-        this.detail = (detailRes.rows && detailRes.rows[0]) || null
+        this.detail = detailRes.data || null
         this.hasAuctionLink = !!(baseRes.data && baseRes.data.hasAuctionLink)
         const files = this.sortFiles(fileRes.rows || [])
         this.imageList = files.filter(
           item => item.fileType === FILE_TYPE_COVER || item.fileType === FILE_TYPE_DETAIL_IMAGE
         )
         this.attachmentList = files.filter(item => item.fileType === FILE_TYPE_ATTACHMENT)
+        this.syncFavoriteStatus()
       } catch (err) {
         console.error('详情加载失败', err)
         this.detail = null
@@ -360,19 +414,37 @@ export default {
   margin-top: 20rpx;
 }
 
+.hero-title-wrap {
+  width: 100%;
+}
+
+.hero-title-only {
+  display: block;
+}
+
+.hero-tags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.hero-tags-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
 .hero-title {
   display: block;
   font-size: 32rpx;
   font-weight: 600;
   color: #333;
   line-height: 1.5;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  margin-top: 16rpx;
+  word-break: break-all;
 }
 
 .tag {
@@ -388,13 +460,30 @@ export default {
   color: #2979ff;
 }
 
-.auction-link-btn {
+.tag-favorite {
   display: inline-flex;
   align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+  background: #f5f5f5;
+  color: #3F51B5;
+}
+
+.tag-favorite.active {
+  background: #fff7e8;
+  color: #d48806;
+}
+
+.auction-link-btn {
+  display: inline-flex;
+  align-items: flex-start;
   gap: 5rpx;
+  max-width: 100%;
   padding: 5rpx 5rpx;
+  padding-right: 12rpx;
   border-radius: 10rpx;
   background: linear-gradient(135deg, #2979ff, #1a5fd9);
+  box-sizing: border-box;
 }
 
 .auction-link-btn.locked {

@@ -55,6 +55,18 @@
             <view>编辑资料</view>
           </view>
         </view>
+        <view class="list-cell list-cell-arrow" @click="handleToFavorite">
+          <view class="menu-item-box">
+            <view class="iconfont icon-aixin menu-icon"></view>
+            <view>我的收藏</view>
+          </view>
+        </view>
+        <view class="list-cell list-cell-arrow" @click="handleToBrowse">
+          <view class="menu-item-box">
+            <view class="iconfont icon-version menu-icon"></view>
+            <view>浏览足迹</view>
+          </view>
+        </view>
         <view class="list-cell list-cell-arrow" @click="handleHelp">
           <view class="menu-item-box">
             <view class="iconfont icon-help menu-icon"></view>
@@ -103,6 +115,14 @@
 
   function handleToEditInfo() {
     proxy.$tab.navigateTo('/pages/mine/info/edit')
+  }
+
+  function handleToFavorite() {
+    proxy.$tab.navigateTo('/pages/mine/behavior/index?type=favorite')
+  }
+
+  function handleToBrowse() {
+    proxy.$tab.navigateTo('/pages/mine/behavior/index?type=browse')
   }
 
   function handleToSetting() {
