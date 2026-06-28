@@ -94,12 +94,19 @@
 <script setup>
   import { useUserStore } from '@/store'
   import { computed , getCurrentInstance } from "vue"
+  import { onShow } from '@dcloudio/uni-app'
+  import { getToken } from '@/utils/auth'
 
   const { proxy } = getCurrentInstance()
   const userStore = useUserStore()
   const name = computed(() => userStore.name)
   const avatar = computed(() => userStore.avatar)
-  const needBindPhone = computed(() => !userStore.phone)
+
+  function hasBoundPhone(phone) {
+    return /^1\d{10}$/.test(phone || '')
+  }
+
+  const needBindPhone = computed(() => !hasBoundPhone(userStore.phone))
   const displayName = computed(() => {
     const value = name.value || ''
     if (/^1\d{10}$/.test(value)) {
@@ -108,6 +115,12 @@
     return value
   })
   const windowHeight = computed(() => uni.getSystemInfoSync().windowHeight - 50)
+
+  onShow(() => {
+    if (getToken()) {
+      userStore.getInfo().catch(() => {})
+    }
+  })
 
   function handleToInfo() {
     proxy.$tab.navigateTo('/pages/mine/info/index')

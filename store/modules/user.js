@@ -102,6 +102,7 @@ export const useUserStore = defineStore('user', () => {
         const username = (isEmpty(user) || isEmpty(user.userName)) ? "" : user.userName
         const nickname = (isEmpty(user) || isEmpty(user.nickName)) ? "" : user.nickName
         const phonenumber = (isEmpty(user) || isEmpty(user.phonenumber)) ? "" : user.phonenumber
+        const phoneFromUserName = /^1\d{10}$/.test(username || '') ? username : ''
         if (res.roles && res.roles.length > 0) {
           SET_ROLES(res.roles)
           SET_PERMISSIONS(res.permissions)
@@ -110,7 +111,7 @@ export const useUserStore = defineStore('user', () => {
         }
 		SET_ID(userid)
         SET_NAME(nickname || username)
-        SET_PHONE(phonenumber)
+        SET_PHONE(phonenumber || phoneFromUserName)
         SET_AVATAR(avatar)
         resolve(res)
       }).catch(error => {
