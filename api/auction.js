@@ -1,14 +1,11 @@
 import request from '@/utils/request'
 
-/** 查询拍卖标的列表（支持 provinceName 筛选，与管理端共用 /house/auction/list） */
+/** 查询拍卖标的列表（支持 provinceName / searchValue；已登录时携带 token 以便记录搜索历史） */
 export function listAuction(query) {
   return request({
     url: '/house/auction/list',
     method: 'get',
-    params: query,
-    headers: {
-      isToken: false
-    }
+    params: query
   })
 }
 
