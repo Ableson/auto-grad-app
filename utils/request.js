@@ -8,11 +8,13 @@ let timeout = 10000
 const baseUrl = config.baseUrl
 
 const request = config => {
-  // 是否需要设置 token
-  const isToken = (config.headers || {}).isToken === false
+  // headers.isToken === false 表示公开接口，不携带 token
+  const skipToken = (config.headers || {}).isToken === false
   config.header = config.header || {}
-  if (getToken() && !isToken) {
+  if (getToken() && !skipToken) {
     config.header['Authorization'] = 'Bearer ' + getToken()
+  } else {
+    delete config.header['Authorization']
   }
   // get请求映射params参数
   if (config.params) {
@@ -33,6 +35,11 @@ const request = config => {
         const code = res.data.code || 200
         const msg = errorCode[code] || res.data.msg || errorCode['default']
         if (code === 401) {
+          if (skipToken) {
+            toast(msg || '接口访问失败')
+            reject('401')
+            return
+          }
           showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then(res => {
             if (res.confirm) {
               useUserStore().logOut().then(res => {

@@ -44,6 +44,12 @@
     "quickapp" : {},
     "mp-weixin" : {
         "appid" : "wxccd7e2a0911b3397",
+        "requiredPrivateInfos" : [ "getLocation" ],
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "您的位置信息将用于展示所在省份的拍卖房源"
+            }
+        },
         "setting" : {
             "urlCheck" : false,
             "es6" : false,

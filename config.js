@@ -1,11 +1,29 @@
 // 应用全局配置
 export default {
-  baseUrl: 'https://vue.ruoyi.vip/prod-api',
-  // baseUrl: 'http://localhost:8080',
+  // 生产环境：nginx 将 /prod-api 反向代理到后端（见 ruoyi-ui-house/nginx.conf）
+  // baseUrl: 'http://localhost:8080/prod-api',
+  baseUrl: 'http://localhost:8080',
+  // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
+
+  /**
+   * 地图服务配置（切换 provider 即可适配不同地图平台）
+   * provider: tencent | amap | baidu
+   * 微信小程序 request 合法域名需配置对应 API 域名：
+   *   腾讯 apis.map.qq.com | 高德 restapi.amap.com | 百度 api.map.baidu.com
+   */
+  map: {
+    provider: 'tencent',
+    keys: {
+      tencent: '',
+      amap: '',
+      baidu: ''
+    }
+  },
+
   // 应用信息
   appInfo: {
     // 应用名称
-    name: "ruoyi-app",
+    name: "house-app",
     // 应用版本
     version: "1.2.0",
     // 应用logo
