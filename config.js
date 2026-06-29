@@ -2,8 +2,14 @@
 export default {
   // 生产环境：nginx 将 /prod-api 反向代理到后端（见 ruoyi-ui-house/nginx.conf）
   // baseUrl: 'http://localhost:8080/prod-api',
-  baseUrl: 'http://192.168.31.225:8080',
+  baseUrl: 'http://192.168.2.31:8080',
   // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
+
+  /** 文件访问地址（与后端 house.file.* 保持一致，勿用 127.0.0.1） */
+  file: {
+    apiPublicBaseUrl: 'http://192.168.2.31:8080',
+    minioPublicBaseUrl: 'http://192.168.2.31:9000/house'
+  },
 
   /**
    * 地图服务配置（切换 provider 即可适配不同地图平台）

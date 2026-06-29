@@ -67,7 +67,7 @@
         >
           <image
             class="grid-cover"
-            :src="item.imgPath || '/static/logo.png'"
+            :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
             mode="aspectFill"
           ></image>
           <text class="grid-title">{{ item.title || item.dataId }}</text>
@@ -87,6 +87,7 @@ import { useUserStore } from '@/store'
 import { getUserCenterStats } from '@/api/userCenter'
 import { getBehaviorPage } from '@/api/userBehavior'
 import { listAuction } from '@/api/auction'
+import { resolveFileUrl } from '@/utils/fileUrl'
 import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
 import { getToken } from '@/utils/auth'
 

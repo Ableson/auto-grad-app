@@ -55,7 +55,7 @@
         >
           <image
             class="house-cover"
-            :src="item.imgPath || '/static/logo.png'"
+            :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
             mode="aspectFill"
           ></image>
           <view class="house-info">
@@ -78,6 +78,7 @@
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { listAuction } from '@/api/auction'
+import { resolveFileUrl } from '@/utils/fileUrl'
 import {
   resolveCurrentProvince,
   chooseProvinceManually,

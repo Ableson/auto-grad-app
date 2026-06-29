@@ -58,7 +58,7 @@ const request = config => {
         resolve(res.data)
       })
       .catch(error => {
-        let { message } = error
+        let message = (error && (error.message || error.errMsg)) || (typeof error === 'string' ? error : '') || '请求失败'
         if (message === 'Network Error') {
           message = '后端接口连接异常'
         } else if (message.includes('timeout')) {

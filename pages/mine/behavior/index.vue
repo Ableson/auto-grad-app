@@ -17,7 +17,7 @@
         >
           <image
             class="grid-cover"
-            :src="item.imgPath || '/static/logo.png'"
+            :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
             mode="aspectFill"
           ></image>
           <text class="grid-title">{{ item.title || item.dataId }}</text>
@@ -35,6 +35,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onReachBottom } from '@dcloudio/uni-app'
 import { getBehaviorPage } from '@/api/userBehavior'
 import { getToken } from '@/utils/auth'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 const type = ref('favorite')
 const gridList = ref([])

@@ -140,7 +140,7 @@
 
           class="house-cover"
 
-          :src="item.imgPath || '/static/logo.png'"
+          :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
 
           mode="aspectFill"
 
@@ -178,6 +178,8 @@
 <script>
 
 import { listAuction } from '@/api/auction'
+
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 import { getSearchHistory } from '@/api/search'
 
@@ -320,6 +322,8 @@ export default {
   },
 
   methods: {
+
+    resolveFileUrl,
 
     formatTime(time) {
 

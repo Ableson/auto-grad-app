@@ -163,6 +163,7 @@ import {
   getFileTypeText,
   isImageSuffix
 } from '@/utils/fileType'
+import { resolveFileUrl } from '@/utils/fileUrl'
 
 export default {
   data() {
@@ -346,7 +347,10 @@ export default {
         ])
         this.detail = detailRes.data || null
         this.hasAuctionLink = !!(baseRes.data && baseRes.data.hasAuctionLink)
-        const files = this.sortFiles(fileRes.rows || [])
+        const files = this.sortFiles(fileRes.rows || []).map(item => ({
+          ...item,
+          fileUrl: resolveFileUrl(item.fileUrl)
+        }))
         this.imageList = files.filter(
           item => item.fileType === FILE_TYPE_COVER || item.fileType === FILE_TYPE_DETAIL_IMAGE
         )
