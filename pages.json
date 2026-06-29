@@ -121,8 +121,8 @@
         "text": "首页"
       }, {
         "pagePath": "pages/house/map",
-        "iconPath": "static/images/tabbar/定位.png",
-        "selectedIconPath": "static/images/tabbar/定位.png",
+        "iconPath": "static/images/tabbar/map.png",
+        "selectedIconPath": "static/images/tabbar/map_.png",
         "text": "地图找房"
       }, {
         "pagePath": "pages/mine/index",

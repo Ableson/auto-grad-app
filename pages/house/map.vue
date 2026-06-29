@@ -252,8 +252,6 @@ import {
 
   getCurrentLocation,
 
-  resolveCurrentProvince,
-
   setManualProvincePreference,
 
   clearManualProvincePreference,
