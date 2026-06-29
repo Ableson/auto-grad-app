@@ -32,6 +32,8 @@
 
       <map
 
+        id="houseMap"
+
         class="house-map"
 
         :provider="nativeMapProvider"
@@ -54,6 +56,8 @@
 
         @markertap="onMarkerTap"
 
+        @regionchange="onRegionChange"
+
       ></map>
 
       <!-- #endif -->
@@ -61,6 +65,8 @@
       <!-- #ifndef APP-PLUS -->
 
       <map
+
+        id="houseMap"
 
         class="house-map"
 
@@ -82,6 +88,8 @@
 
         @markertap="onMarkerTap"
 
+        @regionchange="onRegionChange"
+
       ></map>
 
       <!-- #endif -->
@@ -91,6 +99,14 @@
       <view v-if="nearbyMode" class="range-badge">
 
         <text>周边 {{ nearbyRadiusKm }} km</text>
+
+      </view>
+
+
+
+      <view v-if="nearbyMode" class="map-crosshair">
+
+        <view class="crosshair-dot"></view>
 
       </view>
 
@@ -114,7 +130,7 @@
 
           <text>{{ panelTitle }}</text>
 
-          <text v-if="nearbyMode" class="panel-sub">以{{ centerLabel }}为中心</text>
+          <text v-if="nearbyMode" class="panel-sub">拖动地图调整中心 · {{ centerLabel }}</text>
 
         </view>
 
@@ -242,6 +258,14 @@ const mapCircles = ref([])
 
 const markerItems = ref([])
 
+const suppressRegionChange = ref(false)
+
+const centerIsUserLocation = ref(false)
+
+let regionReloadTimer = null
+
+const MAP_ID = 'houseMap'
+
 
 
 const locationLabel = computed(() => {
@@ -272,11 +296,9 @@ const panelTitle = computed(() => {
 
 const centerLabel = computed(() => {
 
-  const cache = getEffectiveLocation()
+  if (centerIsUserLocation.value) return '当前位置'
 
-  if (cache?.location && searchCenter.value) return '当前位置'
-
-  return provinceName.value || '地图中心'
+  return '地图中心'
 
 })
 
@@ -402,6 +424,160 @@ function updateRangeCircle() {
 
 
 
+function getMapContext() {
+
+  return uni.createMapContext(MAP_ID)
+
+}
+
+
+
+function moveMapTo(center, options = {}) {
+
+  const { scale: nextScale, markUserLocation = false } = options
+
+  if (!center) return
+
+  searchCenter.value = {
+
+    latitude: Number(center.latitude),
+
+    longitude: Number(center.longitude)
+
+  }
+
+  centerIsUserLocation.value = markUserLocation
+
+  suppressRegionChange.value = true
+
+  mapCenter.value = {
+
+    latitude: searchCenter.value.latitude,
+
+    longitude: searchCenter.value.longitude
+
+  }
+
+  if (nextScale != null) {
+
+    scale.value = nextScale
+
+  }
+
+  updateRangeCircle()
+
+  setTimeout(() => {
+
+    suppressRegionChange.value = false
+
+  }, 400)
+
+}
+
+
+
+function onRegionChange(e) {
+
+  if (suppressRegionChange.value || !provinceName.value) return
+
+  const detail = e?.detail || {}
+
+  // 程序 setData 触发的 regionchange，避免与手势互相打架
+
+  if (detail.causedBy === 'update') return
+
+  if (detail.type !== 'end') return
+
+  if (regionReloadTimer) {
+
+    clearTimeout(regionReloadTimer)
+
+  }
+
+  regionReloadTimer = setTimeout(() => {
+
+    syncCenterFromMap(true)
+
+  }, 350)
+
+}
+
+
+
+function syncCenterFromMap(reload = false) {
+
+  if (!provinceName.value) return
+
+  const ctx = getMapContext()
+
+  const applyCenter = (res) => {
+
+    if (res?.latitude == null || res?.longitude == null) return
+
+    suppressRegionChange.value = true
+
+    searchCenter.value = {
+
+      latitude: res.latitude,
+
+      longitude: res.longitude
+
+    }
+
+    mapCenter.value = {
+
+      latitude: res.latitude,
+
+      longitude: res.longitude
+
+    }
+
+    centerIsUserLocation.value = false
+
+    updateRangeCircle()
+
+    setTimeout(() => {
+
+      suppressRegionChange.value = false
+
+    }, 400)
+
+    if (reload) {
+
+      loadNearbyHouseList(true)
+
+    }
+
+  }
+
+  // 先同步用户缩放后的 scale，避免 :scale 绑定把地图缩放回旧级别
+
+  ctx.getScale({
+
+    success: (scaleRes) => {
+
+      if (scaleRes?.scale != null) {
+
+        scale.value = scaleRes.scale
+
+      }
+
+      ctx.getCenterLocation({ success: applyCenter })
+
+    },
+
+    fail: () => {
+
+      ctx.getCenterLocation({ success: applyCenter })
+
+    }
+
+  })
+
+}
+
+
+
 function buildMapMarkers(items) {
 
   markerItems.value = items || []
@@ -452,6 +628,22 @@ function updateMapView(center, province, options = {}) {
 
   const target = center || (province ? getProvinceCenter(province) : chinaCenter)
 
+  if (showRange && center) {
+
+    moveMapTo(target, {
+
+      scale: scaleFromRadius(nearbyRadiusKm.value),
+
+      markUserLocation: options.markUserLocation === true
+
+    })
+
+    return
+
+  }
+
+  suppressRegionChange.value = true
+
   mapCenter.value = {
 
     latitude: Number(target.latitude),
@@ -460,27 +652,23 @@ function updateMapView(center, province, options = {}) {
 
   }
 
-  if (showRange && center) {
+  scale.value = center ? 11 : (province ? 7 : 4)
 
-    scale.value = scaleFromRadius(nearbyRadiusKm.value)
+  mapCircles.value = []
 
-    updateRangeCircle()
+  if (!province && !center) {
 
-  } else {
+    markers.value = []
 
-    scale.value = center ? 11 : (province ? 7 : 4)
-
-    mapCircles.value = []
-
-    if (!province && !center) {
-
-      markers.value = []
-
-      markerItems.value = []
-
-    }
+    markerItems.value = []
 
   }
+
+  setTimeout(() => {
+
+    suppressRegionChange.value = false
+
+  }, 400)
 
 }
 
@@ -574,7 +762,7 @@ async function loadNearbyHouseList(reset = false) {
 
       buildMapMarkers(markerData)
 
-      updateMapView(searchCenter.value, provinceName.value, { showRange: true })
+      updateRangeCircle()
 
     }
 
@@ -606,7 +794,11 @@ async function loadHouseList(reset = false) {
 
   if (provinceName.value) {
 
-    searchCenter.value = await resolveSearchCenter()
+    if (reset && !searchCenter.value) {
+
+      searchCenter.value = await resolveSearchCenter()
+
+    }
 
     if (searchCenter.value) {
 
@@ -736,7 +928,13 @@ async function applyLocation(forceRefresh = false) {
 
     searchCenter.value = await resolveSearchCenter(effective.location)
 
-    updateMapView(searchCenter.value, provinceName.value, { showRange: !!searchCenter.value })
+    updateMapView(searchCenter.value, provinceName.value, {
+
+      showRange: !!searchCenter.value,
+
+      markUserLocation: !!effective.location
+
+    })
 
     await loadHouseList(true)
 
@@ -774,7 +972,13 @@ async function initPage(forceRefresh = true) {
 
       searchCenter.value = await resolveSearchCenter(result.location)
 
-      updateMapView(searchCenter.value, result.provinceName, { showRange: !!searchCenter.value })
+      updateMapView(searchCenter.value, result.provinceName, {
+
+        showRange: !!searchCenter.value,
+
+        markUserLocation: !!result.location
+
+      })
 
     } else {
 
@@ -816,6 +1020,8 @@ async function switchProvince() {
 
     clearLocationCache()
 
+    centerIsUserLocation.value = false
+
     searchCenter.value = provinceName.value ? getProvinceCenter(provinceName.value) : null
 
     updateMapView(searchCenter.value, provinceName.value, { showRange: !!searchCenter.value })
@@ -841,6 +1047,8 @@ function viewNational() {
   clearLocationCache()
 
   searchCenter.value = null
+
+  centerIsUserLocation.value = false
 
   updateMapView(null, '')
 
@@ -904,9 +1112,13 @@ async function locateToMe() {
 
     }
 
-    searchCenter.value = location
+    moveMapTo(location, {
 
-    updateMapView(searchCenter.value, province, { showRange: true })
+      scale: scaleFromRadius(nearbyRadiusKm.value),
+
+      markUserLocation: true
+
+    })
 
     await loadNearbyHouseList(true)
 
@@ -1117,6 +1329,42 @@ onLoad((options) => {
   justify-content: center;
 
   z-index: 10;
+
+}
+
+
+
+.map-crosshair {
+
+  position: absolute;
+
+  left: 50%;
+
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  pointer-events: none;
+
+  z-index: 8;
+
+}
+
+
+
+.crosshair-dot {
+
+  width: 18rpx;
+
+  height: 18rpx;
+
+  border-radius: 50%;
+
+  background: #2979ff;
+
+  border: 4rpx solid #fff;
+
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.25);
 
 }
 
