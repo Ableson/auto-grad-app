@@ -35,3 +35,15 @@ export function getAuctionLink(dataId) {
     method: 'get'
   })
 }
+
+/** 地图页：某省范围内、中心点半径内的房源（含 markers 与分页 rows） */
+export function listAuctionNearby(query) {
+  return request({
+    url: '/house/auction/map/nearby',
+    method: 'get',
+    params: query,
+    headers: {
+      isToken: false
+    }
+  })
+}

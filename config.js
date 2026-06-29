@@ -23,6 +23,8 @@ export default {
 
   map: {
     provider: 'tencent',
+    /** 选中省份后，地图展示中心点周边范围内的房源（公里） */
+    nearbyRadiusKm: 50,
     keys: {
       tencent: 'SGSBZ-GCA64-KV5U3-KYK2O-CFUG6-3UBTQ',
       amap: '',
