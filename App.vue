@@ -23,6 +23,7 @@
 
   function initConfig() {
     useConfigStore().setConfig(config)
+    useConfigStore().loadServerConfig().catch(() => {})
   }
 
   function checkLogin() {

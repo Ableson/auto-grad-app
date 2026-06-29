@@ -56,6 +56,10 @@
 
         @markertap="onMarkerTap"
 
+        @labeltap="onMarkerTap"
+
+        @callouttap="onMarkerTap"
+
         @regionchange="onRegionChange"
 
       ></map>
@@ -88,6 +92,10 @@
 
         @markertap="onMarkerTap"
 
+        @labeltap="onMarkerTap"
+
+        @callouttap="onMarkerTap"
+
         @regionchange="onRegionChange"
 
       ></map>
@@ -96,10 +104,28 @@
 
 
 
-      <view v-if="nearbyMode" class="range-badge">
-
-        <text>周边 {{ nearbyRadiusKm }} km</text>
-
+      <view v-if="nearbyMode" class="range-picker-wrap">
+        <view
+          v-if="radiusDropdownOpen"
+          class="range-dropdown-mask"
+          @click="closeRadiusDropdown"
+        ></view>
+        <view class="range-badge" @click.stop="toggleRadiusDropdown">
+          <text>周边 {{ nearbyRadiusKm }} km</text>
+          <text class="range-badge-arrow" :class="{ open: radiusDropdownOpen }">▼</text>
+        </view>
+        <view v-if="radiusDropdownOpen" class="range-dropdown" @click.stop>
+          <view
+            v-for="km in nearbyRadiusOptions"
+            :key="km"
+            class="range-dropdown-item"
+            :class="{ active: km === nearbyRadiusKm }"
+            @click.stop="selectRadius(km)"
+          >
+            <text>{{ km }} km</text>
+            <text v-if="km === nearbyRadiusKm" class="range-dropdown-check">✓</text>
+          </view>
+        </view>
       </view>
 
 
@@ -130,7 +156,7 @@
 
           <text>{{ panelTitle }}</text>
 
-          <text v-if="nearbyMode" class="panel-sub">拖动地图调整中心 · {{ centerLabel }}</text>
+          <text v-if="nearbyMode" class="panel-sub">拖动/缩放地图调整中心 · 点击左上角切换范围 · {{ centerLabel }}</text>
 
         </view>
 
@@ -210,7 +236,7 @@ import { ref, computed } from 'vue'
 
 import { onLoad } from '@dcloudio/uni-app'
 
-import config from '@/config'
+import { useConfigStore } from '@/store/modules/config'
 
 import { listAuction, listAuctionNearby } from '@/api/auction'
 
@@ -225,6 +251,8 @@ import {
   getEffectiveLocation,
 
   getCurrentLocation,
+
+  resolveCurrentProvince,
 
   setManualProvincePreference,
 
@@ -252,7 +280,11 @@ const locating = ref(false)
 
 const searchCenter = ref(null)
 
-const nearbyRadiusKm = ref(config.map?.nearbyRadiusKm || 50)
+const nearbyRadiusOptions = ref([10, 20, 30, 50, 100])
+
+const nearbyRadiusKm = ref(50)
+
+const radiusDropdownOpen = ref(false)
 
 const mapCircles = ref([])
 
@@ -265,6 +297,12 @@ const centerIsUserLocation = ref(false)
 let regionReloadTimer = null
 
 const MAP_ID = 'houseMap'
+
+const MARKER_ICON = '/static/images/tabbar/定位.png'
+
+const MARKER_WIDTH = 22
+
+const MARKER_HEIGHT = 22
 
 
 
@@ -394,6 +432,41 @@ function scaleFromRadius(radiusKm) {
 
 
 
+async function ensureMapRuntimeConfig() {
+  const cfg = await useConfigStore().loadServerConfig()
+  if (!cfg) return
+  if (Array.isArray(cfg.nearbyRadiusOptions) && cfg.nearbyRadiusOptions.length) {
+    nearbyRadiusOptions.value = cfg.nearbyRadiusOptions.map(Number).filter(n => n > 0)
+  }
+  if (typeof cfg.defaultNearbyRadiusKm === 'number' && cfg.defaultNearbyRadiusKm > 0) {
+    nearbyRadiusKm.value = cfg.defaultNearbyRadiusKm
+  }
+}
+
+
+
+function toggleRadiusDropdown() {
+  radiusDropdownOpen.value = !radiusDropdownOpen.value
+}
+
+function closeRadiusDropdown() {
+  radiusDropdownOpen.value = false
+}
+
+function selectRadius(km) {
+  if (km == null) return
+  radiusDropdownOpen.value = false
+  if (km === nearbyRadiusKm.value) return
+  nearbyRadiusKm.value = km
+  updateRangeCircle()
+  if (searchCenter.value) {
+    moveMapTo(searchCenter.value, { scale: scaleFromRadius(km) })
+  }
+  loadNearbyHouseList(true)
+}
+
+
+
 function updateRangeCircle() {
 
   if (!nearbyMode.value || !searchCenter.value) {
@@ -434,11 +507,16 @@ function getMapContext() {
 
 function moveMapTo(center, options = {}) {
 
-  const { scale: nextScale, markUserLocation = false } = options
+  const {
+    scale: nextScale,
+    markUserLocation = false,
+    animate = false,
+    duration = 650
+  } = options
 
-  if (!center) return
+  if (!center) return Promise.resolve()
 
-  searchCenter.value = {
+  const target = {
 
     latitude: Number(center.latitude),
 
@@ -448,15 +526,17 @@ function moveMapTo(center, options = {}) {
 
   centerIsUserLocation.value = markUserLocation
 
-  suppressRegionChange.value = true
+  if (animate) {
 
-  mapCenter.value = {
-
-    latitude: searchCenter.value.latitude,
-
-    longitude: searchCenter.value.longitude
+    return animateMapCenter(target, nextScale, duration)
 
   }
+
+  searchCenter.value = { ...target }
+
+  suppressRegionChange.value = true
+
+  mapCenter.value = { ...target }
 
   if (nextScale != null) {
 
@@ -471,6 +551,104 @@ function moveMapTo(center, options = {}) {
     suppressRegionChange.value = false
 
   }, 400)
+
+  return Promise.resolve()
+
+}
+
+
+
+let mapAnimateTimer = null
+
+
+
+function animateMapCenter(target, nextScale, duration = 650) {
+
+  if (mapAnimateTimer) {
+
+    clearTimeout(mapAnimateTimer)
+
+    mapAnimateTimer = null
+
+  }
+
+  const startLat = mapCenter.value.latitude
+
+  const startLng = mapCenter.value.longitude
+
+  const endLat = target.latitude
+
+  const endLng = target.longitude
+
+  const startScale = scale.value
+
+  const endScale = nextScale != null ? nextScale : startScale
+
+  const startTime = Date.now()
+
+  suppressRegionChange.value = true
+
+  searchCenter.value = { latitude: endLat, longitude: endLng }
+
+  updateRangeCircle()
+
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
+
+  return new Promise((resolve) => {
+
+    const step = () => {
+
+      const elapsed = Date.now() - startTime
+
+      const t = Math.min(1, elapsed / duration)
+
+      const e = easeOutCubic(t)
+
+      mapCenter.value = {
+
+        latitude: startLat + (endLat - startLat) * e,
+
+        longitude: startLng + (endLng - startLng) * e
+
+      }
+
+      if (nextScale != null) {
+
+        scale.value = startScale + (endScale - startScale) * e
+
+      }
+
+      if (t < 1) {
+
+        mapAnimateTimer = setTimeout(step, 16)
+
+        return
+
+      }
+
+      mapCenter.value = { latitude: endLat, longitude: endLng }
+
+      if (nextScale != null) {
+
+        scale.value = endScale
+
+      }
+
+      mapAnimateTimer = null
+
+      setTimeout(() => {
+
+        suppressRegionChange.value = false
+
+        resolve()
+
+      }, 200)
+
+    }
+
+    step()
+
+  })
 
 }
 
@@ -594,23 +772,47 @@ function buildMapMarkers(items) {
 
       longitude: Number(item.longitude),
 
-      width: 26,
-
-      height: 26,
-
       dataId: item.dataId,
 
-      callout: {
+      // 自定义图钉图标，锚点在尖端；标题仅用 label.anchorY 上移
 
-        content: truncateTitle(item.title),
+      iconPath: MARKER_ICON,
 
-        display: 'BYCLICK',
+      width: MARKER_WIDTH,
 
-        padding: 8,
+      height: MARKER_HEIGHT,
 
-        borderRadius: 8,
+      anchor: {
 
-        fontSize: 12
+        x: 0.5,
+
+        y: 1
+
+      },
+
+      label: {
+
+        content: truncateTitle(item.title, 10),
+
+        color: '#ffffff',
+
+        fontSize: 14,
+
+        bgColor: '#8badf3',
+
+        borderRadius: 4,
+
+        padding: 4,
+
+        borderWidth: 2,
+
+        borderColor: '#548af7',
+
+        anchorX: 0,
+
+        anchorY: -45,
+
+        textAlign: 'center'
 
       }
 
@@ -749,12 +951,6 @@ async function loadNearbyHouseList(reset = false) {
     const rows = res.rows || []
 
     const markerData = res.markers || rows
-
-    if (typeof res.radiusKm === 'number' && res.radiusKm > 0) {
-
-      nearbyRadiusKm.value = res.radiusKm
-
-    }
 
     total.value = res.total || 0
 
@@ -1070,31 +1266,19 @@ async function locateToMe() {
 
     const location = await getCurrentLocation()
 
+    const wasNational = !provinceName.value
+
     let province = provinceName.value
+
+    let geo = null
 
     try {
 
-      const geo = await reverseGeocodeWithFallback(location.latitude, location.longitude)
+      geo = await reverseGeocodeWithFallback(location.latitude, location.longitude)
 
       if (geo?.province) {
 
         province = geo.province
-
-        provinceName.value = province
-
-        setLocationCache({
-
-          provinceName: province,
-
-          cityName: geo.city || '',
-
-          districtName: geo.district || '',
-
-          location,
-
-          address: geo.address || ''
-
-        })
 
       }
 
@@ -1104,19 +1288,93 @@ async function locateToMe() {
 
     }
 
+    // 全国模式：根据 GPS 自动解析并切换到所属省
+
     if (!province) {
 
-      uni.showToast({ title: '请先选择省份', icon: 'none' })
+      try {
+
+        const resolved = await resolveCurrentProvince({ allowManual: false, forceRefresh: true })
+
+        if (resolved?.provinceName) {
+
+          province = resolved.provinceName
+
+          if (resolved.location?.latitude != null) {
+
+            location.latitude = resolved.location.latitude
+
+            location.longitude = resolved.location.longitude
+
+          }
+
+        }
+
+      } catch (err) {
+
+        console.warn('省份解析失败', err)
+
+      }
+
+    }
+
+    if (!province) {
+
+      uni.showToast({ title: '无法识别所在省份，请手动选择', icon: 'none' })
 
       return
 
     }
 
-    moveMapTo(location, {
+    provinceName.value = province
+
+    if (geo?.province) {
+
+      setLocationCache({
+
+        provinceName: province,
+
+        cityName: geo.city || '',
+
+        districtName: geo.district || '',
+
+        location,
+
+        address: geo.address || ''
+
+      })
+
+    } else if (wasNational) {
+
+      setLocationCache({
+
+        provinceName: province,
+
+        cityName: '',
+
+        districtName: '',
+
+        location,
+
+        address: ''
+
+      })
+
+    }
+
+    if (wasNational) {
+
+      setManualProvincePreference(province)
+
+    }
+
+    await moveMapTo(location, {
 
       scale: scaleFromRadius(nearbyRadiusKm.value),
 
-      markUserLocation: true
+      markUserLocation: true,
+
+      animate: true
 
     })
 
@@ -1138,7 +1396,9 @@ async function locateToMe() {
 
 
 
-onLoad((options) => {
+onLoad(async (options) => {
+
+  await ensureMapRuntimeConfig()
 
   if (options.provinceName) {
 
@@ -1278,13 +1538,41 @@ onLoad((options) => {
 
 
 
-.range-badge {
+.range-picker-wrap {
 
   position: absolute;
 
   left: 24rpx;
 
   top: 24rpx;
+
+  z-index: 10;
+
+}
+
+
+
+.range-dropdown-mask {
+
+  position: fixed;
+
+  left: 0;
+
+  top: 0;
+
+  right: 0;
+
+  bottom: 0;
+
+  z-index: 8;
+
+}
+
+
+
+.range-badge {
+
+  position: relative;
 
   padding: 8rpx 18rpx;
 
@@ -1298,7 +1586,105 @@ onLoad((options) => {
 
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
 
-  z-index: 9;
+  display: flex;
+
+  align-items: center;
+
+  gap: 8rpx;
+
+  z-index: 11;
+
+}
+
+
+
+.range-dropdown {
+
+  position: absolute;
+
+  left: 0;
+
+  top: calc(100% + 8rpx);
+
+  min-width: 180rpx;
+
+  background: #fff;
+
+  border-radius: 16rpx;
+
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+
+  z-index: 12;
+
+}
+
+
+
+.range-dropdown-item {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 18rpx 24rpx;
+
+  font-size: 26rpx;
+
+  color: #333;
+
+}
+
+
+
+.range-dropdown-item.active {
+
+  color: #2979ff;
+
+  background: #f0f6ff;
+
+}
+
+
+
+.range-dropdown-item + .range-dropdown-item {
+
+  border-top: 1rpx solid #f0f0f0;
+
+}
+
+
+
+.range-dropdown-check {
+
+  font-size: 24rpx;
+
+  color: #2979ff;
+
+  margin-left: 16rpx;
+
+}
+
+
+
+.range-badge-arrow {
+
+  font-size: 18rpx;
+
+  color: #909399;
+
+  transition: transform 0.2s ease;
+
+}
+
+
+
+.range-badge-arrow.open {
+
+  transform: rotate(180deg);
 
 }
 

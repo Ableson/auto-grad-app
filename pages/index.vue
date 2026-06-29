@@ -16,25 +16,27 @@
 
         </view>
 
-        <picker
-
-          mode="selector"
-
-          :range="menuLabels"
-
-          @change="onMenuSelect"
-
-        >
-
-          <view class="menu-picker">
-
+        <view class="menu-picker-wrap">
+          <view
+            v-if="menuDropdownOpen"
+            class="menu-dropdown-mask"
+            @click="closeMenuDropdown"
+          ></view>
+          <view class="menu-picker" @click.stop="toggleMenuDropdown">
             <text class="menu-picker-text">功能</text>
-
-            <uni-icons type="bottom" size="14" color="#666"></uni-icons>
-
+            <text class="menu-picker-arrow" :class="{ open: menuDropdownOpen }">▼</text>
           </view>
-
-        </picker>
+          <view v-if="menuDropdownOpen" class="menu-dropdown" @click.stop>
+            <view
+              v-for="item in menuActions"
+              :key="item.action"
+              class="menu-dropdown-item"
+              @click.stop="selectMenuAction(item)"
+            >
+              <text>{{ item.label }}</text>
+            </view>
+          </view>
+        </view>
 
       </view>
 
@@ -116,7 +118,15 @@
 
 
 
-    <view class="house-list" @click="showHistory = false">
+    <scroll-view
+      scroll-y
+      class="house-scroll"
+      :lower-threshold="120"
+      @scrolltolower="loadMore"
+      @click="closeMenuDropdown(); showHistory = false"
+    >
+
+      <view class="house-list">
 
       <view v-if="loading && houseList.length === 0" class="empty-tip">加载中...</view>
 
@@ -167,7 +177,9 @@
       <view v-if="loadingMore" class="empty-tip">加载更多...</view>
       <view v-else-if="!hasMore && houseList.length" class="empty-tip">没有更多了</view>
 
-    </view>
+      </view>
+
+    </scroll-view>
 
   </view>
 
@@ -217,8 +229,6 @@ import { syncLocationToServer } from '@/utils/userLocation'
 
 const MENU_ACTIONS = [
 
-  { label: '地图找房', action: 'goMap' },
-
   { label: '切换省份', action: 'chooseProvince' },
 
   { label: '查看全国', action: 'viewNational' }
@@ -253,7 +263,9 @@ export default {
 
       locating: false,
 
-      menuLabels: MENU_ACTIONS.map(item => item.label),
+      menuActions: MENU_ACTIONS,
+
+      menuDropdownOpen: false,
 
       queryParams: {
 
@@ -301,12 +313,6 @@ export default {
 
   },
 
-  onReachBottom() {
-    if (this.hasMore && !this.loading && !this.loadingMore) {
-      this.loadMore()
-    }
-  },
-
   onLoad() {
 
     this.loadSearchHistory()
@@ -351,17 +357,31 @@ export default {
       })
     },
 
-    onMenuSelect(e) {
+    toggleMenuDropdown() {
 
-      const index = Number(e.detail.value)
+      this.menuDropdownOpen = !this.menuDropdownOpen
 
-      const item = MENU_ACTIONS[index]
+    },
+
+    closeMenuDropdown() {
+
+      this.menuDropdownOpen = false
+
+    },
+
+    selectMenuAction(item) {
+
+      this.menuDropdownOpen = false
+
+      this.runMenuAction(item)
+
+    },
+
+    runMenuAction(item) {
 
       if (!item) return
 
-      if (item.action === 'goMap') this.goMap()
-
-      else if (item.action === 'chooseProvince') this.chooseProvince()
+      if (item.action === 'chooseProvince') this.chooseProvince()
 
       else if (item.action === 'viewNational') this.viewNational()
 
@@ -549,21 +569,9 @@ export default {
     },
 
     loadMore() {
-      if (!this.hasMore || this.loadingMore) return
+      if (!this.hasMore || this.loadingMore || this.loading) return
       this.queryParams.pageNum += 1
       this.loadList(false)
-    },
-
-    goMap() {
-
-      const province = this.provinceName ? `?provinceName=${encodeURIComponent(this.provinceName)}` : ''
-
-      uni.navigateTo({
-
-        url: `/pages/house/map${province}`
-
-      })
-
     },
 
     openDetail(item) {
@@ -598,11 +606,15 @@ export default {
 
 .page {
 
-  min-height: 100vh;
+  height: 100vh;
+
+  display: flex;
+
+  flex-direction: column;
 
   background: #f5f6f7;
 
-  padding-bottom: 30rpx;
+  overflow: hidden;
 
 }
 
@@ -613,6 +625,10 @@ export default {
   background: #fff;
 
   padding: 20rpx 24rpx 16rpx;
+
+  flex-shrink: 0;
+
+  z-index: 10;
 
 }
 
@@ -668,6 +684,36 @@ export default {
 
 
 
+.menu-picker-wrap {
+
+  position: relative;
+
+  flex-shrink: 0;
+
+  z-index: 20;
+
+}
+
+
+
+.menu-dropdown-mask {
+
+  position: fixed;
+
+  left: 0;
+
+  top: 0;
+
+  right: 0;
+
+  bottom: 0;
+
+  z-index: 18;
+
+}
+
+
+
 .menu-picker {
 
   display: flex;
@@ -680,7 +726,9 @@ export default {
 
   border-radius: 28rpx;
 
-  flex-shrink: 0;
+  position: relative;
+
+  z-index: 21;
 
 }
 
@@ -693,6 +741,78 @@ export default {
   color: #2979ff;
 
   margin-right: 4rpx;
+
+}
+
+
+
+.menu-picker-arrow {
+
+  font-size: 18rpx;
+
+  color: #666;
+
+  transition: transform 0.2s ease;
+
+}
+
+
+
+.menu-picker-arrow.open {
+
+  transform: rotate(180deg);
+
+}
+
+
+
+.menu-dropdown {
+
+  position: absolute;
+
+  right: 0;
+
+  top: calc(100% + 8rpx);
+
+  min-width: 220rpx;
+
+  background: #fff;
+
+  border-radius: 16rpx;
+
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+
+  z-index: 22;
+
+}
+
+
+
+.menu-dropdown-item {
+
+  padding: 22rpx 28rpx;
+
+  font-size: 26rpx;
+
+  color: #333;
+
+}
+
+
+
+.menu-dropdown-item + .menu-dropdown-item {
+
+  border-top: 1rpx solid #f0f0f0;
+
+}
+
+
+
+.menu-dropdown-item:active {
+
+  background: #f5f8ff;
 
 }
 
@@ -814,9 +934,21 @@ export default {
 
 
 
+.house-scroll {
+
+  flex: 1;
+
+  height: 0;
+
+  background: #f5f6f7;
+
+}
+
+
+
 .house-list {
 
-  padding: 0 24rpx;
+  padding: 0 24rpx 30rpx;
 
 }
 

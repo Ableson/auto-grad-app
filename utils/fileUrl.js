@@ -1,4 +1,5 @@
 import config from '@/config'
+import { useConfigStore } from '@/store/modules/config'
 
 function joinBase(base, path) {
   if (!base) return path || ''
@@ -8,21 +9,30 @@ function joinBase(base, path) {
   return normalizedBase + normalizedPath
 }
 
-/** 将库内 fileUrl/imgPath 转为客户端可访问地址 */
+function getFileBases() {
+  const server = useConfigStore().serverConfig || {}
+  return {
+    apiBase: server.apiPublicBaseUrl || config.baseUrl,
+    minioBase: server.minioPublicBaseUrl || ''
+  }
+}
+
+/** 将库内 fileUrl/imgPath 转为客户端可访问地址（库内 MinIO 仅存 /auction/...） */
 export function resolveFileUrl(url) {
   if (!url) return ''
   const trimmed = String(url).trim()
   if (trimmed.startsWith('//')) {
     return `https:${trimmed}`
   }
+  const { apiBase, minioBase } = getFileBases()
   if (trimmed.startsWith('/profile/')) {
-    const apiBase = (config.file && config.file.apiPublicBaseUrl) || config.baseUrl
     return joinBase(apiBase, trimmed)
   }
-  const auctionIdx = trimmed.indexOf('/auction/')
-  if (auctionIdx >= 0) {
-    const minioBase = (config.file && config.file.minioPublicBaseUrl) || ''
-    return joinBase(minioBase, trimmed.substring(auctionIdx))
+  if (trimmed.startsWith('/auction/')) {
+    return joinBase(minioBase, trimmed)
+  }
+  if (trimmed.startsWith('auction/')) {
+    return joinBase(minioBase, `/${trimmed}`)
   }
   return trimmed
 }

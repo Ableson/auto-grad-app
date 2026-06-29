@@ -11,6 +11,19 @@
       </swiper>
     </uni-swiper-dot>
 
+    <!-- 业务功能 -->
+    <uni-section title="业务功能" type="line"></uni-section>
+    <view class="grid-body">
+      <uni-grid :column="4" :showBorder="false" @change="changeBizGrid">
+        <uni-grid-item>
+          <view class="grid-item-box">
+            <uni-icons type="map-pin" size="30" color="#2979ff"></uni-icons>
+            <text class="text">地图找房</text>
+          </view>
+        </uni-grid-item>
+      </uni-grid>
+    </view>
+
     <!-- 宫格组件 -->
     <uni-section title="系统管理" type="line"></uni-section>
     <view class="grid-body">
@@ -88,6 +101,14 @@
 
   function changeSwiper(e) {
     current.value = e.detail.current
+  }
+
+  function changeBizGrid(e) {
+    if (e.detail.index === 0) {
+      proxy.$tab.switchTab('/pages/house/map')
+      return
+    }
+    proxy.$modal.showToast('模块建设中~')
   }
 
   function changeGrid(e) {

@@ -67,6 +67,16 @@
       <uni-icons type="right" size="14" color="#999"></uni-icons>
     </view>
 
+    <view class="menu-list">
+      <view class="menu-item" @click="handleToWork">
+        <view class="menu-item-left">
+          <uni-icons type="gear-filled" size="20" color="#2979ff"></uni-icons>
+          <text class="menu-item-text">工作台</text>
+        </view>
+        <uni-icons type="right" size="14" color="#999"></uni-icons>
+      </view>
+    </view>
+
     <view class="quick-row">
       <view class="quick-item" @click="handleToBrowse">
         <view class="quick-icon browse">
@@ -220,6 +230,10 @@ function handleToOrder() {
     return
   }
   proxy.$tab.navigateTo('/pages/mine/order/index')
+}
+
+function handleToWork() {
+  proxy.$tab.navigateTo('/pages/work/index')
 }
 
 function handleProvinceListings() {
@@ -449,6 +463,31 @@ page {
 }
 
 .order-entry-text {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.menu-list {
+  margin: 0 24rpx 20rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx;
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.menu-item-text {
   font-size: 28rpx;
   color: #333;
 }

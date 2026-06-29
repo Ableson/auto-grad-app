@@ -1,15 +1,9 @@
-// 应用全局配置
+  // 应用全局配置
 export default {
   // 生产环境：nginx 将 /prod-api 反向代理到后端（见 ruoyi-ui-house/nginx.conf）
   // baseUrl: 'http://localhost:8080/prod-api',
-  baseUrl: 'http://192.168.2.31:8080',
+  baseUrl: 'http://192.168.31.225:8080',
   // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
-
-  /** 文件访问地址（与后端 house.file.* 保持一致，勿用 127.0.0.1） */
-  file: {
-    apiPublicBaseUrl: 'http://192.168.2.31:8080',
-    minioPublicBaseUrl: 'http://192.168.2.31:9000/house'
-  },
 
   /**
    * 地图服务配置（切换 provider 即可适配不同地图平台）
@@ -17,14 +11,14 @@ export default {
    * 微信小程序 request 合法域名需配置对应 API 域名：
    *   腾讯 apis.map.qq.com | 高德 restapi.amap.com | 百度 api.map.baidu.com
    * 逆地理编码失败时会依次尝试已配置 Key 的服务；建议微信小程序至少配置 tencent Key 作为兜底
+   *
+   * 文件 URL 前缀、地图周边半径等运行时配置见 GET /house/app/config（启动时拉取）
    */
   /** 本地展示的搜索历史条数（超出移除最早一条；与服务端 house.search.history-max 可分别配置） */
   searchHistoryMax: 10,
 
   map: {
     provider: 'tencent',
-    /** 选中省份后，地图展示中心点周边范围内的房源（公里） */
-    nearbyRadiusKm: 50,
     keys: {
       tencent: 'SGSBZ-GCA64-KV5U3-KYK2O-CFUG6-3UBTQ',
       amap: '',

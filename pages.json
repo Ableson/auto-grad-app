@@ -120,10 +120,10 @@
         "selectedIconPath": "static/images/tabbar/home_.png",
         "text": "首页"
       }, {
-        "pagePath": "pages/work/index",
-        "iconPath": "static/images/tabbar/work.png",
-        "selectedIconPath": "static/images/tabbar/work_.png",
-        "text": "工作台"
+        "pagePath": "pages/house/map",
+        "iconPath": "static/images/tabbar/定位.png",
+        "selectedIconPath": "static/images/tabbar/定位.png",
+        "text": "地图找房"
       }, {
         "pagePath": "pages/mine/index",
         "iconPath": "static/images/tabbar/mine.png",
