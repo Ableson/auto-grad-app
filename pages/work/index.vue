@@ -28,10 +28,10 @@
     <uni-section title="系统管理" type="line"></uni-section>
     <view class="grid-body">
       <uni-grid :column="4" :showBorder="false" @change="changeGrid">
-        <uni-grid-item>
+        <uni-grid-item v-if="isAgencyStaff">
           <view class="grid-item-box">
-            <uni-icons type="person-filled" size="30"></uni-icons>
-            <text class="text">用户管理</text>
+            <uni-icons type="person-filled" size="30" color="#2979ff"></uni-icons>
+            <text class="text">客户管理</text>
           </view>
         </uni-grid-item>
         <uni-grid-item>
@@ -89,11 +89,33 @@
 
 <script setup>
   import { ref, getCurrentInstance } from "vue"
+  import { onShow } from "@dcloudio/uni-app"
+  import { getToken } from '@/utils/auth'
+  import { getAgencyApplyStatus } from '@/api/agency'
 
   const { proxy } = getCurrentInstance()
   const current = ref(0)
   const swiperDotIndex = ref(0)
+  const isAgencyStaff = ref(false)
   const data = ref([{ image: '/static/images/banner/banner01.jpg' }, { image: '/static/images/banner/banner02.jpg' }, { image: '/static/images/banner/banner03.jpg' }])
+
+  onShow(() => {
+    refreshAgencyStatus()
+  })
+
+  async function refreshAgencyStatus() {
+    if (!getToken()) {
+      isAgencyStaff.value = false
+      return
+    }
+    try {
+      const res = await getAgencyApplyStatus()
+      const statusData = res.data || res
+      isAgencyStaff.value = !!statusData.isAgencyStaff
+    } catch (err) {
+      isAgencyStaff.value = false
+    }
+  }
 
   function clickBannerItem(item) {
     console.info(item)
@@ -112,6 +134,11 @@
   }
 
   function changeGrid(e) {
+    const index = e.detail.index
+    if (isAgencyStaff.value && index === 0) {
+      proxy.$tab.navigateTo('/pages/work/customer/index')
+      return
+    }
     proxy.$modal.showToast('模块建设中~')
   }
 </script>

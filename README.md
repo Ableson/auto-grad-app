@@ -79,3 +79,11 @@ RuoYi App 移动解决方案，采用uniapp框架，一份代码多终端适配�
 轮询 GET /house/member/pay/status 确认支付
 刷新会员状态
 ```
+### 其他页面需要使用区划缓存时
+```
+import { useAreaStore } from '@/store'
+
+const areaStore = useAreaStore()
+await areaStore.ensureLoaded()
+const cities = areaStore.getCitiesByProvinceId(provinceId)
+```

@@ -56,7 +56,7 @@
   import { onLoad } from "@dcloudio/uni-app"
   import { getToken } from '@/utils/auth'
   import { getCodeImg } from '@/api/login'
-  import { useConfigStore, useUserStore } from '@/store'
+  import { useConfigStore, useUserStore, useAreaStore } from '@/store'
   import { syncLocationToServer } from '@/utils/userLocation'
 
   const { proxy } = getCurrentInstance()
@@ -150,6 +150,7 @@
 
   function loginSuccess() {
     return useUserStore().getInfo().then(async () => {
+      await useAreaStore().loadAreaOnce().catch(() => {})
       await syncLocationToServer().catch(() => {})
       proxy.$tab.reLaunch('/pages/index')
     })

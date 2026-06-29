@@ -74,6 +74,22 @@
       "onReachBottomDistance": 120
     }
   }, {
+    "path": "pages/work/customer/index",
+    "style": {
+      "navigationBarTitleText": "客户管理",
+      "onReachBottomDistance": 120
+    }
+  }, {
+    "path": "pages/work/customer/profile",
+    "style": {
+      "navigationBarTitleText": "客户画像"
+    }
+  }, {
+    "path": "pages/mine/agency/apply",
+    "style": {
+      "navigationBarTitleText": "辅拍机构入驻"
+    }
+  }, {
     "path": "pages/mine/pwd/index",
     "style": {
       "navigationBarTitleText": "修改密码"

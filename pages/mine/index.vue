@@ -67,17 +67,21 @@
       <uni-icons type="right" size="14" color="#999"></uni-icons>
     </view>
 
-    <view class="menu-list">
-      <view class="menu-item" @click="handleToWork">
-        <view class="menu-item-left">
-          <uni-icons type="gear-filled" size="20" color="#2979ff"></uni-icons>
-          <text class="menu-item-text">工作台</text>
-        </view>
-        <uni-icons type="right" size="14" color="#999"></uni-icons>
+    <view v-if="loggedIn" class="order-entry" @click="handleToAgency">
+      <view class="order-entry-left">
+        <text class="order-entry-text">辅拍机构入驻</text>
+        <text v-if="agencyStatusText" class="agency-status">{{ agencyStatusText }}</text>
       </view>
+      <uni-icons type="right" size="14" color="#999"></uni-icons>
     </view>
 
     <view class="quick-row">
+      <view class="quick-item" @click="handleToWork">
+        <view class="quick-icon work">
+          <uni-icons type="gear-filled" size="28" color="#2979ff"></uni-icons>
+        </view>
+        <text class="quick-text">工作台</text>
+      </view>
       <view class="quick-item" @click="handleToBrowse">
         <view class="quick-icon browse">
           <uni-icons type="loop" size="28" color="#2979ff"></uni-icons>
@@ -100,6 +104,7 @@ import { computed, ref, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
 import { getUserCenterStats } from '@/api/userCenter'
+import { getAgencyApplyStatus } from '@/api/agency'
 import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
 import { syncLocationToServer } from '@/utils/userLocation'
 
@@ -117,6 +122,15 @@ const stats = ref({
 })
 const memberActive = ref(false)
 const memberLabel = ref('会员')
+const agencyStatus = ref(null)
+const isAgencyStaff = ref(false)
+
+const agencyStatusText = computed(() => {
+  if (isAgencyStaff.value) return '已通过'
+  if (agencyStatus.value === '0') return '审核中'
+  if (agencyStatus.value === '2') return '已拒绝'
+  return ''
+})
 
 const loggedIn = computed(() => !!getToken())
 const name = computed(() => userStore.name)
@@ -139,6 +153,8 @@ const displayName = computed(() => {
 async function refreshPage() {
   if (!loggedIn.value) {
     memberActive.value = false
+    isAgencyStaff.value = false
+    agencyStatus.value = null
     stats.value = { provinceListingCount: 0, favoriteCount: 0, browseCount: 0, provinceName: '' }
     return
   }
@@ -159,6 +175,7 @@ async function refreshPage() {
       dynamicFilter: data.dynamicFilter || {},
       recentDays: data.recentDays || 7
     }
+    await refreshAgencyStatus()
   } catch (err) {
     console.warn('刷新我的页失败', err)
   }
@@ -234,6 +251,26 @@ function handleToOrder() {
 
 function handleToWork() {
   proxy.$tab.navigateTo('/pages/work/index')
+}
+
+async function refreshAgencyStatus() {
+  try {
+    const res = await getAgencyApplyStatus()
+    const data = res.data || res
+    isAgencyStaff.value = !!data.isAgencyStaff
+    agencyStatus.value = data.applyStatus
+  } catch (err) {
+    isAgencyStaff.value = false
+    agencyStatus.value = null
+  }
+}
+
+function handleToAgency() {
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
+  }
+  proxy.$tab.navigateTo('/pages/mine/agency/apply')
 }
 
 function handleProvinceListings() {
@@ -467,29 +504,18 @@ page {
   color: #333;
 }
 
-.menu-list {
-  margin: 0 24rpx 20rpx;
-  background: #fff;
-  border-radius: 20rpx;
-  overflow: hidden;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx;
-}
-
-.menu-item-left {
+.order-entry-left {
   display: flex;
   align-items: center;
   gap: 16rpx;
 }
 
-.menu-item-text {
-  font-size: 28rpx;
-  color: #333;
+.agency-status {
+  font-size: 22rpx;
+  color: #2979ff;
+  background: #eef4ff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
 }
 
 .quick-row {

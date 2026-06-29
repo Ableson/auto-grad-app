@@ -1,7 +1,7 @@
 <script setup>
   import config from './config'
   import { getToken } from '@/utils/auth'
-  import { useConfigStore } from '@/store'
+  import { useConfigStore, useAreaStore } from '@/store'
   import { getCurrentInstance } from "vue"
   import { onLaunch } from '@dcloudio/uni-app'
 
@@ -15,6 +15,9 @@
   function initApp() {
     // 初始化应用配置
     initConfig()
+    if (getToken()) {
+      useAreaStore().loadAreaOnce().catch(() => {})
+    }
     // 检查用户登录状态
     //#ifdef H5
     checkLogin()

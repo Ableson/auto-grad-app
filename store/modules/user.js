@@ -6,6 +6,7 @@ import constant from '@/utils/constant'
 import { isHttp, isEmpty } from "@/utils/validate"
 import { getInfo, login, logout, wxLogin } from '@/api/login'
 import { getToken, removeToken, setToken } from '@/utils/auth'
+import { useAreaStore } from '@/store/modules/area'
 import defAva from '@/static/images/profile.jpg'
 
 const baseUrl = config.baseUrl
@@ -129,6 +130,7 @@ export const useUserStore = defineStore('user', () => {
         SET_PERMISSIONS([])
         removeToken()
         storage.clean()
+        useAreaStore().clearArea()
         resolve()
       }).catch(error => {
         reject(error)
