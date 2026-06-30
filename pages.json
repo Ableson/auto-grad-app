@@ -90,6 +90,23 @@
       "navigationBarTitleText": "辅拍机构入驻"
     }
   }, {
+    "path": "pages/im/index",
+    "style": {
+      "navigationBarTitleText": "消息"
+    }
+  }, {
+    "path": "pages/im/chat/index",
+    "style": {
+      "navigationBarTitleText": "聊天"
+    }
+  }, {
+    "path": "pages/im/call/room",
+    "style": {
+      "navigationBarTitleText": "通话",
+      "navigationBarBackgroundColor": "#1a1a1a",
+      "navigationBarTextStyle": "white"
+    }
+  }, {
     "path": "pages/mine/pwd/index",
     "style": {
       "navigationBarTitleText": "修改密码"
