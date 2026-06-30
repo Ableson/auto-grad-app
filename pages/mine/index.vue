@@ -76,21 +76,21 @@
     </view>
 
     <view class="quick-row">
-      <view class="quick-item" @click="handleToWork">
+      <view v-if="loggedIn && isAgencyStaff" class="quick-item" @click="handleToWork">
         <view class="quick-icon work">
-          <uni-icons type="gear-filled" size="28" color="#2979ff"></uni-icons>
+          <image class="quick-icon-img" src="/static/images/icon/预览.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">工作台</text>
       </view>
       <view class="quick-item" @click="handleToBrowse">
         <view class="quick-icon browse">
-          <uni-icons type="loop" size="28" color="#2979ff"></uni-icons>
+          <image class="quick-icon-img" src="/static/images/icon/足迹.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">浏览足迹</text>
       </view>
       <view class="quick-item" @click="handleToFavorite">
         <view class="quick-icon favorite">
-          <uni-icons type="star-filled" size="28" color="#2979ff"></uni-icons>
+          <image class="quick-icon-img" src="/static/images/icon/收藏.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">我的收藏</text>
       </view>
@@ -104,7 +104,6 @@ import { computed, ref, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
 import { getUserCenterStats } from '@/api/userCenter'
-import { getAgencyApplyStatus } from '@/api/agency'
 import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
 import { syncLocationToServer } from '@/utils/userLocation'
 
@@ -122,8 +121,8 @@ const stats = ref({
 })
 const memberActive = ref(false)
 const memberLabel = ref('会员')
-const agencyStatus = ref(null)
-const isAgencyStaff = ref(false)
+const isAgencyStaff = computed(() => userStore.isAgencyStaff)
+const agencyStatus = computed(() => userStore.agencyApplyStatus)
 
 const agencyStatusText = computed(() => {
   if (isAgencyStaff.value) return '已通过'
@@ -153,8 +152,7 @@ const displayName = computed(() => {
 async function refreshPage() {
   if (!loggedIn.value) {
     memberActive.value = false
-    isAgencyStaff.value = false
-    agencyStatus.value = null
+    userStore.clearAgencyStatus()
     stats.value = { provinceListingCount: 0, favoriteCount: 0, browseCount: 0, provinceName: '' }
     return
   }
@@ -175,7 +173,7 @@ async function refreshPage() {
       dynamicFilter: data.dynamicFilter || {},
       recentDays: data.recentDays || 7
     }
-    await refreshAgencyStatus()
+    await userStore.refreshAgencyStatus()
   } catch (err) {
     console.warn('刷新我的页失败', err)
   }
@@ -250,19 +248,15 @@ function handleToOrder() {
 }
 
 function handleToWork() {
-  proxy.$tab.navigateTo('/pages/work/index')
-}
-
-async function refreshAgencyStatus() {
-  try {
-    const res = await getAgencyApplyStatus()
-    const data = res.data || res
-    isAgencyStaff.value = !!data.isAgencyStaff
-    agencyStatus.value = data.applyStatus
-  } catch (err) {
-    isAgencyStaff.value = false
-    agencyStatus.value = null
+  if (!loggedIn.value) {
+    handleToLogin()
+    return
   }
+  if (!isAgencyStaff.value) {
+    proxy.$modal.showToast('仅限认证通过的辅拍机构人员')
+    return
+  }
+  proxy.$tab.navigateTo('/pages/work/index')
 }
 
 function handleToAgency() {
@@ -541,6 +535,11 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.quick-icon-img {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .quick-text {

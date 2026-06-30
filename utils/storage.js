@@ -4,7 +4,7 @@ import constant from './constant'
 let storageKey = 'storage_data'
 
 // 存储节点变量名
-let storageNodeKeys = [constant.avatar, constant.id, constant.name, constant.phone, constant.roles, constant.permissions]
+let storageNodeKeys = [constant.avatar, constant.id, constant.name, constant.phone, constant.roles, constant.permissions, constant.isAgencyStaff, constant.agencyApplyStatus]
 
 const storage = {
   set: function(key, value) {

@@ -5,11 +5,22 @@ import storage from '@/utils/storage'
 import constant from '@/utils/constant'
 import { isHttp, isEmpty } from "@/utils/validate"
 import { getInfo, login, logout, wxLogin } from '@/api/login'
+import { getAgencyApplyStatus } from '@/api/agency'
 import { getToken, removeToken, setToken } from '@/utils/auth'
 import { useAreaStore } from '@/store/modules/area'
 import defAva from '@/static/images/profile.jpg'
 
 const baseUrl = config.baseUrl
+
+function readStoredBool(key) {
+  const value = storage.get(key)
+  return value === true || value === 'true' || value === 1 || value === '1'
+}
+
+function readStoredString(key) {
+  const value = storage.get(key)
+  return value || null
+}
 
 export const useUserStore = defineStore('user', () => {
   const token = ref(getToken())
@@ -19,6 +30,8 @@ export const useUserStore = defineStore('user', () => {
   const avatar = ref(storage.get(constant.avatar))
   const roles = ref(storage.get(constant.roles))
   const permissions = ref(storage.get(constant.permissions))
+  const isAgencyStaff = ref(readStoredBool(constant.isAgencyStaff))
+  const agencyApplyStatus = ref(readStoredString(constant.agencyApplyStatus))
 
   const SET_TOKEN = (val) => {
     token.value = val
@@ -46,6 +59,33 @@ export const useUserStore = defineStore('user', () => {
   const SET_PERMISSIONS = (val) => {
     permissions.value = val
     storage.set(constant.permissions, val)
+  }
+  const SET_AGENCY_STAFF = (val) => {
+    isAgencyStaff.value = !!val
+    storage.set(constant.isAgencyStaff, !!val)
+  }
+  const SET_AGENCY_APPLY_STATUS = (val) => {
+    agencyApplyStatus.value = val || null
+    storage.set(constant.agencyApplyStatus, val || '')
+  }
+  const clearAgencyStatus = () => {
+    isAgencyStaff.value = false
+    agencyApplyStatus.value = null
+    storage.set(constant.isAgencyStaff, false)
+    storage.set(constant.agencyApplyStatus, '')
+  }
+  const refreshAgencyStatus = () => {
+    if (!getToken()) {
+      clearAgencyStatus()
+      return Promise.resolve()
+    }
+    return getAgencyApplyStatus().then(res => {
+      const data = res.data || res
+      SET_AGENCY_STAFF(!!data.isAgencyStaff)
+      SET_AGENCY_APPLY_STATUS(data.applyStatus)
+    }).catch(() => {
+      clearAgencyStatus()
+    })
   }
 
   // 登录
@@ -114,7 +154,7 @@ export const useUserStore = defineStore('user', () => {
         SET_NAME(nickname || username)
         SET_PHONE(phonenumber || phoneFromUserName)
         SET_AVATAR(avatar)
-        resolve(res)
+        return refreshAgencyStatus().then(() => resolve(res))
       }).catch(error => {
         reject(error)
       })
@@ -128,6 +168,7 @@ export const useUserStore = defineStore('user', () => {
         SET_TOKEN('')
         SET_ROLES([])
         SET_PERMISSIONS([])
+        clearAgencyStatus()
         removeToken()
         storage.clean()
         useAreaStore().clearArea()
@@ -146,8 +187,12 @@ export const useUserStore = defineStore('user', () => {
     avatar,
     roles,
     permissions,
+    isAgencyStaff,
+    agencyApplyStatus,
     SET_AVATAR,
     SET_PHONE,
+    clearAgencyStatus,
+    refreshAgencyStatus,
     login: loginAction,
     wxLogin: wxLoginAction,
     getInfo: getInfoAction,
