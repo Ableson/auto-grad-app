@@ -26,6 +26,11 @@
       "navigationBarTitleText": "标的详情"
     }
   }, {
+    "path": "pages/common/province/index",
+    "style": {
+      "navigationBarTitleText": "选择省份"
+    }
+  }, {
     "path": "pages/member/index",
     "style": {
       "navigationBarTitleText": "开通会员"
@@ -85,6 +90,23 @@
       "navigationBarTitleText": "客户画像"
     }
   }, {
+    "path": "pages/work/customer/houses",
+    "style": {
+      "navigationBarTitleText": "匹配房源",
+      "onReachBottomDistance": 120
+    }
+  }, {
+    "path": "pages/work/requirement/index",
+    "style": {
+      "navigationBarTitleText": "客户需求",
+      "onReachBottomDistance": 120
+    }
+  }, {
+    "path": "pages/work/requirement/detail",
+    "style": {
+      "navigationBarTitleText": "需求详情"
+    }
+  }, {
     "path": "pages/mine/agency/apply",
     "style": {
       "navigationBarTitleText": "辅拍机构入驻"
@@ -92,12 +114,18 @@
   }, {
     "path": "pages/im/index",
     "style": {
-      "navigationBarTitleText": "消息"
+      "navigationBarTitleText": "消息",
+      "enablePullDownRefresh": true
     }
   }, {
     "path": "pages/im/chat/index",
     "style": {
       "navigationBarTitleText": "聊天"
+    }
+  }, {
+    "path": "pages/im/user/profile",
+    "style": {
+      "navigationBarTitleText": "对方资料"
     }
   }, {
     "path": "pages/im/call/room",
@@ -127,11 +155,6 @@
       "navigationBarTitleText": "关于我们"
     }
   }, {
-    "path": "pages/common/province/index",
-    "style": {
-      "navigationBarTitleText": "选择省份"
-    }
-  }, {
     "path": "pages/common/webview/index",
     "style": {
       "navigationBarTitleText": "浏览网页"
@@ -157,6 +180,11 @@
         "iconPath": "static/images/tabbar/map.png",
         "selectedIconPath": "static/images/tabbar/map_.png",
         "text": "地图找房"
+      }, {
+        "pagePath": "pages/im/index",
+        "iconPath": "static/images/tabbar/message.png",
+        "selectedIconPath": "static/images/tabbar/message_.png",
+        "text": "消息"
       }, {
         "pagePath": "pages/mine/index",
         "iconPath": "static/images/tabbar/mine.png",

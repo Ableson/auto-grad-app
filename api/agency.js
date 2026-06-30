@@ -50,3 +50,38 @@ export function claimAgencyCustomer(userId, data) {
     data
   })
 }
+
+/** 符合用户画像的匹配房源列表 */
+export function getAgencyCustomerMatchHouses(userId, params) {
+  return request({
+    url: `/house/agency/customer/${userId}/match-houses`,
+    method: 'get',
+    params
+  })
+}
+
+/** 客户需求分页列表 */
+export function getAgencyRequirementPage(params) {
+  return request({
+    url: '/house/agency/requirement/page',
+    method: 'get',
+    params
+  })
+}
+
+/** 客户需求详情 */
+export function getAgencyRequirementDetail(userId) {
+  return request({
+    url: `/house/agency/requirement/${userId}`,
+    method: 'get'
+  })
+}
+
+/** 更新客户需求 */
+export function updateAgencyRequirement(userId, data) {
+  return request({
+    url: `/house/agency/requirement/${userId}`,
+    method: 'put',
+    data
+  })
+}

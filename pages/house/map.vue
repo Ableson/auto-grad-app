@@ -234,7 +234,8 @@
 
 import { ref, computed } from 'vue'
 
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
+import { refreshImTabBadge } from '@/utils/imTabBadge'
 
 import { useConfigStore } from '@/store/modules/config'
 
@@ -1414,6 +1415,10 @@ onLoad(async (options) => {
 
   applyLocation(false)
 
+})
+
+onShow(() => {
+  refreshImTabBadge()
 })
 
 </script>

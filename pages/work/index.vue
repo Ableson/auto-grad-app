@@ -27,59 +27,11 @@
     <!-- 宫格组件 -->
     <uni-section title="系统管理" type="line"></uni-section>
     <view class="grid-body">
-      <uni-grid :column="4" :showBorder="false" @change="changeGrid">
-        <uni-grid-item v-if="isAgencyStaff">
-          <view class="grid-item-box">
-            <uni-icons type="person-filled" size="30" color="#2979ff"></uni-icons>
-            <text class="text">客户管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="staff-filled" size="30"></uni-icons>
-            <text class="text">角色管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="color" size="30"></uni-icons>
-            <text class="text">菜单管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="settings-filled" size="30"></uni-icons>
-            <text class="text">部门管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="heart-filled" size="30"></uni-icons>
-            <text class="text">岗位管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="bars" size="30"></uni-icons>
-            <text class="text">字典管理</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="gear-filled" size="30"></uni-icons>
-            <text class="text">参数设置</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="chat-filled" size="30"></uni-icons>
-            <text class="text">通知公告</text>
-          </view>
-        </uni-grid-item>
-        <uni-grid-item>
-          <view class="grid-item-box">
-            <uni-icons type="wallet-filled" size="30"></uni-icons>
-            <text class="text">日志管理</text>
+      <uni-grid :column="4" :showBorder="false">
+        <uni-grid-item v-for="item in systemGridItems" :key="item.key">
+          <view class="grid-item-box" @click="handleSystemGrid(item)">
+            <uni-icons :type="item.icon" size="30" :color="item.color || '#666'"></uni-icons>
+            <text class="text">{{ item.label }}</text>
           </view>
         </uni-grid-item>
       </uni-grid>
@@ -88,7 +40,7 @@
 </template>
 
 <script setup>
-  import { ref, getCurrentInstance } from "vue"
+  import { ref, computed, getCurrentInstance } from "vue"
   import { onShow } from "@dcloudio/uni-app"
   import { getToken } from '@/utils/auth'
   import { getAgencyApplyStatus } from '@/api/agency'
@@ -98,6 +50,38 @@
   const swiperDotIndex = ref(0)
   const isAgencyStaff = ref(false)
   const data = ref([{ image: '/static/images/banner/banner01.jpg' }, { image: '/static/images/banner/banner02.jpg' }, { image: '/static/images/banner/banner03.jpg' }])
+
+  const systemGridItems = computed(() => {
+    const items = []
+    if (isAgencyStaff.value) {
+      items.push({
+        key: 'customer',
+        label: '客户管理',
+        icon: 'person-filled',
+        color: '#2979ff',
+        path: '/pages/work/customer/index'
+      })
+      items.push({
+        key: 'requirement',
+        label: '客户需求',
+        icon: 'list',
+        color: '#2979ff',
+        path: '/pages/work/requirement/index'
+      })
+    } else {
+      items.push({ key: 'role', label: '角色管理', icon: 'staff-filled' })
+    }
+    items.push(
+      { key: 'menu', label: '菜单管理', icon: 'color' },
+      { key: 'dept', label: '部门管理', icon: 'settings-filled' },
+      { key: 'post', label: '岗位管理', icon: 'heart-filled' },
+      { key: 'dict', label: '字典管理', icon: 'bars' },
+      { key: 'config', label: '参数设置', icon: 'gear-filled' },
+      { key: 'notice', label: '通知公告', icon: 'chat-filled' },
+      { key: 'log', label: '日志管理', icon: 'wallet-filled' }
+    )
+    return items
+  })
 
   onShow(() => {
     refreshAgencyStatus()
@@ -133,10 +117,9 @@
     proxy.$modal.showToast('模块建设中~')
   }
 
-  function changeGrid(e) {
-    const index = e.detail.index
-    if (isAgencyStaff.value && index === 0) {
-      proxy.$tab.navigateTo('/pages/work/customer/index')
+  function handleSystemGrid(item) {
+    if (item.path) {
+      proxy.$tab.navigateTo(item.path)
       return
     }
     proxy.$modal.showToast('模块建设中~')

@@ -1,11 +1,18 @@
 import request from '@/utils/request'
 
 export function getImUnreadCount() {
-  return request({ url: '/im/unread/count', method: 'get' })
+  return request({ url: '/im/unread/count', method: 'get', silent: true })
 }
 
 export function getImInbox() {
   return request({ url: '/im/inbox', method: 'get' })
+}
+
+export function getImPeerProfile(userId) {
+  return request({
+    url: `/im/user/${userId}/profile`,
+    method: 'get'
+  })
 }
 
 export function getImConversationList() {

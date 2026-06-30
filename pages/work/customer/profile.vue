@@ -3,14 +3,23 @@
     <view v-if="pageLoading" class="empty-tip">加载中...</view>
     <template v-else-if="profile">
       <view class="user-card">
-        <view class="user-name">{{ displayName }}</view>
-        <view class="user-meta">用户ID：{{ profile.userId }}</view>
-        <view v-if="profile.phonenumber" class="user-meta">手机：{{ maskPhone(profile.phonenumber) }}</view>
-        <view class="claim-row">
-          <text v-if="isClaimed" class="claim-tag active">本机构已认领</text>
-          <text v-else-if="isClaimPending" class="claim-tag pending">等待用户同意</text>
-          <text v-else class="claim-tag">未认领</text>
-          <text class="claim-count">共 {{ profile.claimAgencyCount || 0 }} 家机构认领</text>
+        <view class="user-card-main">
+          <view class="user-info">
+            <view class="user-name">{{ displayName }}</view>
+            <view class="user-meta">用户ID：{{ profile.userId }}</view>
+            <view v-if="profile.phonenumber" class="user-meta">手机：{{ maskPhone(profile.phonenumber) }}</view>
+            <view class="claim-row">
+              <text v-if="isClaimed" class="claim-tag active">本机构已认领</text>
+              <text v-else-if="isClaimPending" class="claim-tag pending">等待用户同意</text>
+              <text v-else class="claim-tag">未认领</text>
+              <text class="claim-count">共 {{ profile.claimAgencyCount || 0 }} 家机构认领</text>
+            </view>
+          </view>
+          <view class="match-entry" @click="openMatchHouses">
+            <text class="match-num">{{ profile.matchHouseCount || 0 }}</text>
+            <text class="match-label">匹配房源</text>
+            <uni-icons type="right" size="14" color="#2979ff"></uni-icons>
+          </view>
         </view>
       </view>
 
@@ -214,6 +223,14 @@ async function loadProfile(options = {}) {
   }
 }
 
+function openMatchHouses() {
+  if (!userId.value) return
+  const name = encodeURIComponent(displayName.value || '')
+  uni.navigateTo({
+    url: `/pages/work/customer/houses?userId=${userId.value}&nickName=${name}&source=profile`
+  })
+}
+
 async function handleClaim() {
   if (claiming.value || !userId.value || !canClaim.value) return
   claiming.value = true
@@ -245,6 +262,46 @@ async function handleClaim() {
   background: #fff;
   padding: 32rpx 24rpx;
   margin-bottom: 20rpx;
+}
+
+.user-card-main {
+  display: flex;
+  align-items: stretch;
+  gap: 20rpx;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.match-entry {
+  flex-shrink: 0;
+  width: 160rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f8faff;
+  border-radius: 16rpx;
+  padding: 20rpx 12rpx;
+}
+
+.match-entry:active {
+  opacity: 0.8;
+}
+
+.match-num {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #2979ff;
+  line-height: 1.2;
+}
+
+.match-label {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #666;
 }
 
 .user-name {

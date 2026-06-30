@@ -2,7 +2,7 @@
 export default {
   // 生产环境：nginx 将 /prod-api 反向代理到后端（见 ruoyi-ui-house/nginx.conf）
   // baseUrl: 'http://localhost:8080/prod-api',
-  baseUrl: 'http://192.168.2.31:8080',
+  baseUrl: 'http://192.168.31.225:8080',
   // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
 
   /**

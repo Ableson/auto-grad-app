@@ -94,13 +94,6 @@
         </view>
         <text class="quick-text">我的收藏</text>
       </view>
-      <view class="quick-item" @click="handleToIm">
-        <view class="quick-icon message">
-          <image class="quick-icon-img" src="/static/images/icon/搜索.png" mode="aspectFit"></image>
-          <view v-if="imUnreadDisplay" class="quick-badge">{{ imUnreadDisplay }}</view>
-        </view>
-        <text class="quick-text">消息</text>
-      </view>
     </view>
   </view>
 </template>
@@ -111,8 +104,8 @@ import { computed, ref, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
 import { getUserCenterStats } from '@/api/userCenter'
-import { getImUnreadCount } from '@/api/im'
 import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
+import { refreshImTabBadge } from '@/utils/imTabBadge'
 import { syncLocationToServer } from '@/utils/userLocation'
 
 const { proxy } = getCurrentInstance()
@@ -129,12 +122,6 @@ const stats = ref({
 })
 const memberActive = ref(false)
 const memberLabel = ref('会员')
-const imUnreadCount = ref(0)
-const imUnreadDisplay = computed(() => {
-  if (imUnreadCount.value <= 0) return ''
-  if (imUnreadCount.value > 99) return '...'
-  return String(imUnreadCount.value)
-})
 const isAgencyStaff = computed(() => userStore.isAgencyStaff)
 const agencyStatus = computed(() => userStore.agencyApplyStatus)
 
@@ -166,7 +153,6 @@ const displayName = computed(() => {
 async function refreshPage() {
   if (!loggedIn.value) {
     memberActive.value = false
-    imUnreadCount.value = 0
     userStore.clearAgencyStatus()
     stats.value = { provinceListingCount: 0, favoriteCount: 0, browseCount: 0, provinceName: '' }
     return
@@ -189,11 +175,7 @@ async function refreshPage() {
       recentDays: data.recentDays || 7
     }
     await userStore.refreshAgencyStatus()
-    const imRes = await getImUnreadCount().catch(() => null)
-    if (imRes) {
-      const imData = imRes.data || imRes
-      imUnreadCount.value = imData.total || 0
-    }
+    refreshImTabBadge()
   } catch (err) {
     console.warn('刷新我的页失败', err)
   }
@@ -241,14 +223,6 @@ function handleToFavorite() {
     return
   }
   proxy.$tab.navigateTo('/pages/mine/behavior/index?type=favorite')
-}
-
-function handleToIm() {
-  if (!loggedIn.value) {
-    handleToLogin()
-    return
-  }
-  proxy.$tab.navigateTo('/pages/im/index')
 }
 
 function handleToBrowse() {

@@ -48,12 +48,6 @@
         "permission" : {
             "scope.userLocation" : {
                 "desc" : "您的位置信息将用于展示所在省份的拍卖房源"
-            },
-            "scope.camera" : {
-                "desc" : "您的摄像头将用于视频通话"
-            },
-            "scope.record" : {
-                "desc" : "您的麦克风将用于语音和视频通话"
             }
         },
         "setting" : {

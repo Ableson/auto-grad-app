@@ -66,7 +66,9 @@ const request = config => {
         } else if (message.includes('Request failed with status code')) {
           message = '系统接口' + message.slice(-3) + '异常'
         }
-        toast(message)
+        if (!config.silent) {
+          toast(message)
+        }
         reject(error)
       })
   })

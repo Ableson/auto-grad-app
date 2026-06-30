@@ -89,7 +89,7 @@
                 :class="{ active: item.id === selectedProvinceId }"
                 @click="selectProvince(item)"
               >
-                <text>{{ item.name }}</text>
+                <text>{{ areaFullName(item) }}</text>
                 <text v-if="item.id === selectedProvinceId" class="picker-check">✓</text>
               </view>
             </scroll-view>
@@ -124,11 +124,11 @@
                 v-for="item in cityOptions"
                 :key="item.id"
                 class="picker-option"
-                :class="{ active: item.name === form.cityName }"
+                :class="{ active: isSameArea(item, form.cityName) }"
                 @click="selectCity(item)"
               >
-                <text>{{ item.name }}</text>
-                <text v-if="item.name === form.cityName" class="picker-check">✓</text>
+                <text>{{ areaFullName(item) }}</text>
+                <text v-if="isSameArea(item, form.cityName)" class="picker-check">✓</text>
               </view>
             </scroll-view>
           </view>
@@ -208,6 +208,15 @@ function displayValue(value) {
   return value || '-'
 }
 
+function areaFullName(area) {
+  return areaStore.getAreaFullName(area)
+}
+
+function isSameArea(area, name) {
+  if (!area || !name) return false
+  return areaStore.getAreaFullName(area) === name || area.name === name
+}
+
 function fillFormFromAgency(agency) {
   if (!agency) return
   form.value = {
@@ -231,8 +240,8 @@ function fillFormFromApply(apply) {
     agencyName: apply.agencyName || '',
     contactName: apply.contactName || '',
     contactPhone: apply.contactPhone || '',
-    provinceName: province?.name || apply.provinceName || '',
-    cityName: city?.name || apply.cityName || '',
+    provinceName: province ? areaStore.getAreaFullName(province) : apply.provinceName || '',
+    cityName: city ? areaStore.getAreaFullName(city) : apply.cityName || '',
     address: apply.address || '',
     licenseNo: apply.licenseNo || '',
     intro: apply.intro || ''
@@ -264,14 +273,14 @@ function closeCityDropdown() {
 function selectProvince(province) {
   if (selectedProvinceId.value !== province.id) {
     selectedProvinceId.value = province.id
-    form.value.provinceName = province.name
+    form.value.provinceName = areaStore.getAreaFullName(province)
     form.value.cityName = ''
   }
   closeProvinceDropdown()
 }
 
 function selectCity(city) {
-  form.value.cityName = city.name
+  form.value.cityName = areaStore.getAreaFullName(city)
   closeCityDropdown()
 }
 

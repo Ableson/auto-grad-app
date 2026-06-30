@@ -4,7 +4,12 @@
       <view class="section-title">联系申请</view>
       <view v-for="item in pendingRequests" :key="item.id" class="request-card">
         <view class="request-main">
-          <image :src="resolveAvatar(item.fromAvatar)" class="avatar" mode="aspectFill"></image>
+          <image
+            :src="resolveAvatar(item.fromAvatar)"
+            class="avatar clickable"
+            mode="aspectFill"
+            @click.stop="openPeerProfile(item)"
+          ></image>
           <view class="request-info">
             <text class="request-title">{{ item.title || '辅拍机构' }}</text>
             <text class="request-from">{{ item.fromNickName || '机构人员' }}</text>
@@ -48,12 +53,16 @@ import { ref, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getImInbox, acceptImRequest, rejectImRequest } from '@/api/im'
 import { getToken } from '@/utils/auth'
+import { refreshImTabBadge } from '@/utils/imTabBadge'
 import config from '@/config'
 import defAva from '@/static/images/profile.jpg'
+
+import { useUserStore } from '@/store'
 
 const baseUrl = config.baseUrl
 
 const { proxy } = getCurrentInstance()
+const userStore = useUserStore()
 const pendingRequests = ref([])
 const conversations = ref([])
 
@@ -71,6 +80,7 @@ async function loadInbox() {
     const data = res.data || res
     pendingRequests.value = data.requests || []
     conversations.value = data.conversations || []
+    refreshImTabBadge()
   } catch (e) {
     console.warn('加载消息失败', e)
   }
@@ -87,20 +97,44 @@ function resolveAvatar(avatar) {
   return baseUrl + avatar
 }
 
+function removeRequest(requestId) {
+  pendingRequests.value = pendingRequests.value.filter(item => item.id !== requestId)
+}
+
+function openPeerProfile(item) {
+  const userId = item.fromUserId || item.peerUserId
+  if (!userId) {
+    uni.showToast({ title: '无法获取对方信息', icon: 'none' })
+    return
+  }
+  if (userStore.isAgencyStaff) {
+    uni.navigateTo({ url: `/pages/work/customer/profile?userId=${userId}` })
+    return
+  }
+  const nickName = encodeURIComponent(item.fromNickName || item.peerNickName || '')
+  uni.navigateTo({ url: `/pages/im/user/profile?userId=${userId}&nickName=${nickName}` })
+}
+
 async function handleAccept(item) {
   try {
     await acceptImRequest(item.id)
+    removeRequest(item.id)
     proxy.$modal.showToast('已同意')
     loadInbox()
-  } catch (e) {}
+  } catch (e) {
+    loadInbox()
+  }
 }
 
 async function handleReject(item) {
   try {
     await rejectImRequest(item.id)
+    removeRequest(item.id)
     proxy.$modal.showToast('已拒绝')
     loadInbox()
-  } catch (e) {}
+  } catch (e) {
+    loadInbox()
+  }
 }
 
 function openChat(item) {
@@ -138,6 +172,9 @@ function openChat(item) {
   border-radius: 50%;
   margin-right: 20rpx;
   flex-shrink: 0;
+}
+.avatar.clickable:active {
+  opacity: 0.75;
 }
 .avatar-placeholder {
   background: #f0f0f0;

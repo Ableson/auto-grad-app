@@ -57,9 +57,6 @@
 </template>
 
 <script>
-// #ifdef MP-WEIXIN
-import TRTC from '@/utils/trtc/index.js'
-// #endif
 import { getCallCredentials, acceptImCall, endImCall } from '@/api/im'
 
 export default {
@@ -91,9 +88,19 @@ export default {
     this.peerName = decodeURIComponent(options.peerName || '通话')
     uni.setNavigationBarTitle({ title: this.peerName })
     // #ifdef MP-WEIXIN
-    this.trtc = new TRTC(this)
-    this.bindTrtcEvents()
-    this.initCall()
+    try {
+      const TRTC = this.loadTrtcSdk()
+      if (!TRTC) {
+        uni.showToast({ title: '通话组件加载失败', icon: 'none' })
+        return
+      }
+      this.trtc = new TRTC(this)
+      this.bindTrtcEvents()
+      this.initCall()
+    } catch (err) {
+      console.error('TRTC init failed', err)
+      uni.showToast({ title: '通话组件加载失败', icon: 'none' })
+    }
     // #endif
     // #ifndef MP-WEIXIN
     uni.showToast({ title: '请在微信小程序真机使用通话', icon: 'none' })
@@ -103,6 +110,22 @@ export default {
     this.leaveRoom(false)
   },
   methods: {
+    loadTrtcSdk() {
+      // wxcomponents 目录会被 uni-app 原样拷贝到微信输出目录
+      const candidates = [
+        '../../../wxcomponents/trtc-wx-sdk/trtc-wx.js',
+        'trtc-wx-sdk'
+      ]
+      for (const mod of candidates) {
+        try {
+          const sdk = require(mod)
+          if (sdk) return sdk
+        } catch (err) {
+          console.warn('TRTC require failed:', mod, err)
+        }
+      }
+      return null
+    },
     bindTrtcEvents() {
       if (!this.trtc) return
       this.trtc.on(this.trtc.EVENT.REMOTE_USER_JOIN, () => {

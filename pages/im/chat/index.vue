@@ -13,9 +13,11 @@
       >
         <image
           v-if="msg.msgType !== '9' && msg.senderId !== myUserId"
-          :src="resolveAvatar(msg.senderAvatar || peerAvatar)"
+          :src="resolveAvatar(messageAvatar(msg))"
           class="msg-avatar"
+          :class="{ clickable: canOpenPeerProfile }"
           mode="aspectFill"
+          @click.stop="openPeerProfile"
         />
         <view class="bubble" :class="{ 'call-bubble': isCallMsg(msg.msgType) }" @click="onCallMsgClick(msg)">
           <text v-if="msg.msgType === '9'" class="system-text">{{ msg.content }}</text>
@@ -24,7 +26,7 @@
         </view>
         <image
           v-if="msg.msgType !== '9' && msg.senderId === myUserId"
-          :src="resolveAvatar(myAvatar)"
+          :src="resolveAvatar(messageAvatar(msg))"
           class="msg-avatar"
           mode="aspectFill"
         />
@@ -32,11 +34,13 @@
     </scroll-view>
 
     <view class="toolbar">
-      <view class="tool-btn" @click="handleVoiceCall">
-        <uni-icons type="phone-filled" size="22" color="#2979ff"></uni-icons>
-      </view>
-      <view class="tool-btn" @click="handleVideoCall">
-        <uni-icons type="videocam-filled" size="22" color="#2979ff"></uni-icons>
+      <view class="tool-group">
+        <view class="tool-btn" @click="handleVoiceCall">
+          <uni-icons type="phone-filled" size="20" color="#2979ff"></uni-icons>
+        </view>
+        <view class="tool-btn" @click="handleVideoCall">
+          <uni-icons type="videocam-filled" size="20" color="#2979ff"></uni-icons>
+        </view>
       </view>
       <input v-model="inputText" class="input" confirm-type="send" @confirm="handleSend" placeholder="输入消息" />
       <button class="send-btn" size="mini" type="primary" @click="handleSend">发送</button>
@@ -45,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 import { onLoad, onShow, onUnload, onHide } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store'
 import {
@@ -65,6 +69,7 @@ const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const myUserId = ref(Number(userStore.id) || 0)
 const conversationId = ref(null)
+const peerUserId = ref(null)
 const peerName = ref('')
 const peerAvatar = ref('')
 const myAvatar = ref(userStore.avatar || '')
@@ -75,8 +80,11 @@ let pollTimer = null
 let ringTimer = null
 let incomingCallId = null
 
+const canOpenPeerProfile = computed(() => !!resolvePeerUserId())
+
 onLoad((options) => {
   conversationId.value = Number(options.conversationId)
+  peerUserId.value = options.peerUserId ? Number(options.peerUserId) : null
   peerName.value = decodeURIComponent(options.peerName || '聊天')
   peerAvatar.value = decodeURIComponent(options.peerAvatar || '')
   myAvatar.value = userStore.avatar || ''
@@ -89,7 +97,37 @@ function resolveAvatar(avatar) {
   return baseUrl + avatar
 }
 
+function messageAvatar(msg) {
+  if (msg.senderId === myUserId.value) {
+    return myAvatar.value
+  }
+  return peerAvatar.value
+}
+
+function resolvePeerUserId() {
+  if (peerUserId.value) {
+    return peerUserId.value
+  }
+  const peerMsg = messages.value.find(item => item.senderId && item.senderId !== myUserId.value)
+  return peerMsg?.senderId || null
+}
+
+function openPeerProfile() {
+  const userId = resolvePeerUserId()
+  if (!userId) {
+    uni.showToast({ title: '无法获取对方信息', icon: 'none' })
+    return
+  }
+  if (userStore.isAgencyStaff) {
+    uni.navigateTo({ url: `/pages/work/customer/profile?userId=${userId}` })
+    return
+  }
+  const nickName = encodeURIComponent(peerName.value || '')
+  uni.navigateTo({ url: `/pages/im/user/profile?userId=${userId}&nickName=${nickName}` })
+}
+
 onShow(() => {
+  myAvatar.value = userStore.avatar || ''
   loadMessages()
   readImConversation(conversationId.value).catch(() => {})
   pollTimer = setInterval(loadMessages, 5000)
@@ -251,6 +289,9 @@ function handleVideoCall() {
   flex-shrink: 0;
   background: #ddd;
 }
+.msg-avatar.clickable:active {
+  opacity: 0.75;
+}
 .bubble {
   max-width: calc(100% - 120rpx);
   background: #fff;
@@ -276,22 +317,41 @@ function handleVideoCall() {
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  padding: 16rpx 20rpx;
+  gap: 8rpx;
+  padding: 16rpx 16rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   background: #f7f7f7;
   border-top: 1rpx solid #e5e5e5;
 }
+.tool-group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4rpx;
+}
 .tool-btn {
-  padding: 8rpx;
+  padding: 4rpx;
+  flex-shrink: 0;
 }
 .input {
   flex: 1;
+  min-width: 0;
+  height: 72rpx;
+  line-height: 72rpx;
   background: #fff;
   border-radius: 8rpx;
-  padding: 12rpx 16rpx;
+  padding: 0 20rpx;
   font-size: 28rpx;
+  box-sizing: border-box;
 }
 .send-btn {
+  flex-shrink: 0;
+  width: 112rpx;
+  min-width: 112rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  padding: 0;
   margin: 0;
+  font-size: 26rpx;
 }
 </style>

@@ -197,6 +197,8 @@ import { getSearchHistory } from '@/api/search'
 
 import { getToken } from '@/utils/auth'
 
+import { refreshImTabBadge } from '@/utils/imTabBadge'
+
 import {
 
   getLocalSearchHistory,
@@ -324,6 +326,8 @@ export default {
   onShow() {
 
     if (isPickingProvince()) return
+
+    refreshImTabBadge()
 
   },
 
