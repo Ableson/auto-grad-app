@@ -58,7 +58,7 @@
 
 <script>
 // #ifdef MP-WEIXIN
-import TRTC from '@/utils/trtc/trtc-wx.js'
+import TRTC from '@/utils/trtc/index.js'
 // #endif
 import { getCallCredentials, acceptImCall, endImCall } from '@/api/im'
 

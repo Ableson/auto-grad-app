@@ -16,7 +16,7 @@
         微信一键登录
       </button>
       <view class="wx-login-tip">将尝试获取手机号；未开通或未授权时，登录后可在个人信息中填写</view>
-      <view class="toggle-pwd" @click="showPwdLogin = !showPwdLogin">
+      <view class="toggle-pwd" @click="togglePwdLogin">
         <text>{{ showPwdLogin ? '收起账号登录' : '使用账号密码登录' }}</text>
       </view>
     </view>
@@ -97,6 +97,13 @@
         loginForm.value.uuid = res.uuid
       }
     })
+  }
+
+  function togglePwdLogin() {
+    showPwdLogin.value = !showPwdLogin.value
+    if (showPwdLogin.value) {
+      getCode()
+    }
   }
 
   async function handleWxPhoneLogin(e) {

@@ -1,13 +1,14 @@
 <template>
   <view class="profile-page">
-    <view v-if="loading" class="empty-tip">加载中...</view>
+    <view v-if="pageLoading" class="empty-tip">加载中...</view>
     <template v-else-if="profile">
       <view class="user-card">
         <view class="user-name">{{ displayName }}</view>
         <view class="user-meta">用户ID：{{ profile.userId }}</view>
         <view v-if="profile.phonenumber" class="user-meta">手机：{{ maskPhone(profile.phonenumber) }}</view>
         <view class="claim-row">
-          <text v-if="profile.claimedByMyAgency" class="claim-tag active">本机构已认领</text>
+          <text v-if="isClaimed" class="claim-tag active">本机构已认领</text>
+          <text v-else-if="isClaimPending" class="claim-tag pending">等待用户同意</text>
           <text v-else class="claim-tag">未认领</text>
           <text class="claim-count">共 {{ profile.claimAgencyCount || 0 }} 家机构认领</text>
         </view>
@@ -91,12 +92,13 @@
 
       <view class="action-bar">
         <button
-          v-if="!profile.claimedByMyAgency"
+          v-if="canClaim"
           class="claim-btn"
           :loading="claiming"
           @click="handleClaim"
         >认领客户</button>
-        <button v-else class="claim-btn disabled" disabled>已认领</button>
+        <view v-else-if="isClaimPending" class="claim-btn disabled">等待用户同意</view>
+        <view v-else class="claim-btn disabled">已认领</view>
       </view>
     </template>
   </view>
@@ -104,13 +106,13 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
 import { getAgencyCustomerProfile, claimAgencyCustomer } from '@/api/agency'
 
 const userId = ref(null)
 const profile = ref(null)
-const loading = ref(false)
+const pageLoading = ref(false)
 const claiming = ref(false)
 
 const displayName = computed(() => {
@@ -127,6 +129,11 @@ const hasBrowsePriceStats = computed(() => {
     || profile.value.maxDepositYuan != null
 })
 
+const isClaimed = computed(() => !!profile.value?.claimedByMyAgency)
+const claimRequireApproval = computed(() => profile.value?.claimRequireUserApproval !== false)
+const isClaimPending = computed(() => claimRequireApproval.value && !!profile.value?.claimPendingByMyAgency)
+const canClaim = computed(() => !isClaimed.value && !isClaimPending.value)
+
 onLoad((options) => {
   if (!getToken()) {
     uni.showToast({ title: '请先登录', icon: 'none' })
@@ -136,6 +143,38 @@ onLoad((options) => {
   userId.value = options.userId
   loadProfile()
 })
+
+onShow(() => {
+  if (userId.value && getToken() && profile.value) {
+    loadProfile({ silent: true })
+  }
+})
+
+function parseData(res) {
+  return res?.data ?? res ?? {}
+}
+
+function applyProfileData(res) {
+  const raw = parseData(res)
+  profile.value = {
+    ...raw,
+    claimedByMyAgency: !!raw.claimedByMyAgency,
+    claimPendingByMyAgency: !!raw.claimPendingByMyAgency,
+    claimRequireUserApproval: raw.claimRequireUserApproval !== false
+  }
+}
+
+function applyClaimState(res) {
+  const raw = parseData(res)
+  if (!profile.value) return
+  profile.value = {
+    ...profile.value,
+    claimedByMyAgency: !!raw.claimedByMyAgency,
+    claimPendingByMyAgency: !!raw.claimPendingByMyAgency,
+    myAgencyClaimStatus: raw.myAgencyClaimStatus,
+    claimRequireUserApproval: raw.claimRequireUserApproval !== false
+  }
+}
 
 function maskPhone(phone) {
   if (!/^1\d{10}$/.test(phone || '')) return phone || '-'
@@ -157,26 +196,36 @@ function formatYuan(value) {
   return `${num.toLocaleString()} 元`
 }
 
-async function loadProfile() {
+async function loadProfile(options = {}) {
   if (!userId.value) return
-  loading.value = true
+  const silent = !!options.silent
+  if (!silent && !profile.value) {
+    pageLoading.value = true
+  }
   try {
     const res = await getAgencyCustomerProfile(userId.value)
-    profile.value = res.data || res
+    applyProfileData(res)
   } catch (err) {
-    uni.showToast({ title: err.msg || '加载失败', icon: 'none' })
+    if (!silent) {
+      uni.showToast({ title: err.msg || '加载失败', icon: 'none' })
+    }
   } finally {
-    loading.value = false
+    pageLoading.value = false
   }
 }
 
 async function handleClaim() {
-  if (claiming.value || !userId.value) return
+  if (claiming.value || !userId.value || !canClaim.value) return
   claiming.value = true
   try {
-    await claimAgencyCustomer(userId.value, {})
-    uni.showToast({ title: '认领成功', icon: 'success' })
-    await loadProfile()
+    const res = await claimAgencyCustomer(userId.value, {})
+    applyClaimState(res)
+    const requireApproval = profile.value?.claimRequireUserApproval !== false
+    uni.showToast({
+      title: requireApproval ? '申请已发送，等待用户同意' : '认领成功',
+      icon: 'success'
+    })
+    await loadProfile({ silent: true })
   } catch (err) {
     uni.showToast({ title: err.msg || err.message || '认领失败', icon: 'none' })
   } finally {
@@ -228,6 +277,11 @@ async function handleClaim() {
 .claim-tag.active {
   color: #2979ff;
   background: #eef4ff;
+}
+
+.claim-tag.pending {
+  color: #e6a23c;
+  background: #fdf6ec;
 }
 
 .claim-count {
@@ -366,6 +420,10 @@ async function handleClaim() {
 
 .claim-btn.disabled {
   background: #ccc;
+  color: #fff;
+  text-align: center;
+  line-height: 88rpx;
+  pointer-events: none;
 }
 
 .empty-tip {

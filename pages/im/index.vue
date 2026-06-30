@@ -4,10 +4,7 @@
       <view class="section-title">联系申请</view>
       <view v-for="item in pendingRequests" :key="item.id" class="request-card">
         <view class="request-main">
-          <image v-if="item.fromAvatar" :src="item.fromAvatar" class="avatar" mode="aspectFill"></image>
-          <view v-else class="avatar avatar-placeholder">
-            <uni-icons type="person-filled" size="24" color="#ccc"></uni-icons>
-          </view>
+          <image :src="resolveAvatar(item.fromAvatar)" class="avatar" mode="aspectFill"></image>
           <view class="request-info">
             <text class="request-title">{{ item.title || '辅拍机构' }}</text>
             <text class="request-from">{{ item.fromNickName || '机构人员' }}</text>
@@ -30,10 +27,7 @@
         class="conv-item"
         @click="openChat(item)"
       >
-        <image v-if="item.peerAvatar" :src="item.peerAvatar" class="avatar" mode="aspectFill"></image>
-        <view v-else class="avatar avatar-placeholder">
-          <uni-icons type="person-filled" size="24" color="#ccc"></uni-icons>
-        </view>
+        <image :src="resolveAvatar(item.peerAvatar)" class="avatar" mode="aspectFill"></image>
         <view class="conv-main">
           <view class="conv-top">
             <text class="conv-name">{{ item.peerNickName || '用户' }}</text>
@@ -54,6 +48,10 @@ import { ref, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getImInbox, acceptImRequest, rejectImRequest } from '@/api/im'
 import { getToken } from '@/utils/auth'
+import config from '@/config'
+import defAva from '@/static/images/profile.jpg'
+
+const baseUrl = config.baseUrl
 
 const { proxy } = getCurrentInstance()
 const pendingRequests = ref([])
@@ -83,6 +81,12 @@ function formatTime(time) {
   return String(time).replace('T', ' ').slice(0, 16)
 }
 
+function resolveAvatar(avatar) {
+  if (!avatar) return defAva
+  if (/^https?:\/\//.test(avatar)) return avatar
+  return baseUrl + avatar
+}
+
 async function handleAccept(item) {
   try {
     await acceptImRequest(item.id)
@@ -100,7 +104,7 @@ async function handleReject(item) {
 }
 
 function openChat(item) {
-  proxy.$tab.navigateTo(`/pages/im/chat/index?conversationId=${item.conversationId}&peerUserId=${item.peerUserId}&peerName=${encodeURIComponent(item.peerNickName || '')}`)
+  proxy.$tab.navigateTo(`/pages/im/chat/index?conversationId=${item.conversationId}&peerUserId=${item.peerUserId}&peerName=${encodeURIComponent(item.peerNickName || '')}&peerAvatar=${encodeURIComponent(item.peerAvatar || '')}`)
 }
 </script>
 

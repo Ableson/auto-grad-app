@@ -1,12 +1,33 @@
 <template>
   <view class="chat-page">
     <scroll-view scroll-y class="msg-list" :scroll-into-view="scrollIntoView">
-      <view v-for="msg in messages" :key="msg.id" :id="'msg-' + msg.id" class="msg-row" :class="{ mine: msg.senderId === myUserId }">
+      <view
+        v-for="msg in messages"
+        :key="msg.id"
+        :id="'msg-' + msg.id"
+        class="msg-row"
+        :class="{
+          mine: msg.senderId === myUserId && msg.msgType !== '9',
+          system: msg.msgType === '9'
+        }"
+      >
+        <image
+          v-if="msg.msgType !== '9' && msg.senderId !== myUserId"
+          :src="resolveAvatar(msg.senderAvatar || peerAvatar)"
+          class="msg-avatar"
+          mode="aspectFill"
+        />
         <view class="bubble" :class="{ 'call-bubble': isCallMsg(msg.msgType) }" @click="onCallMsgClick(msg)">
           <text v-if="msg.msgType === '9'" class="system-text">{{ msg.content }}</text>
           <text v-else-if="isCallMsg(msg.msgType)" class="call-text">{{ formatCallText(msg) }}</text>
           <text v-else>{{ msg.content }}</text>
         </view>
+        <image
+          v-if="msg.msgType !== '9' && msg.senderId === myUserId"
+          :src="resolveAvatar(myAvatar)"
+          class="msg-avatar"
+          mode="aspectFill"
+        />
       </view>
     </scroll-view>
 
@@ -35,12 +56,18 @@ import {
   getRingingCall,
   rejectImCall
 } from '@/api/im'
+import config from '@/config'
+import defAva from '@/static/images/profile.jpg'
+
+const baseUrl = config.baseUrl
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const myUserId = ref(Number(userStore.id) || 0)
 const conversationId = ref(null)
 const peerName = ref('')
+const peerAvatar = ref('')
+const myAvatar = ref(userStore.avatar || '')
 const messages = ref([])
 const inputText = ref('')
 const scrollIntoView = ref('')
@@ -51,8 +78,16 @@ let incomingCallId = null
 onLoad((options) => {
   conversationId.value = Number(options.conversationId)
   peerName.value = decodeURIComponent(options.peerName || '聊天')
+  peerAvatar.value = decodeURIComponent(options.peerAvatar || '')
+  myAvatar.value = userStore.avatar || ''
   uni.setNavigationBarTitle({ title: peerName.value })
 })
+
+function resolveAvatar(avatar) {
+  if (!avatar) return defAva
+  if (/^https?:\/\//.test(avatar)) return avatar
+  return baseUrl + avatar
+}
 
 onShow(() => {
   loadMessages()
@@ -199,13 +234,25 @@ function handleVideoCall() {
 }
 .msg-row {
   display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
   margin-bottom: 20rpx;
 }
 .msg-row.mine {
   justify-content: flex-end;
 }
+.msg-row.system {
+  justify-content: center;
+}
+.msg-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #ddd;
+}
 .bubble {
-  max-width: 70%;
+  max-width: calc(100% - 120rpx);
   background: #fff;
   border-radius: 12rpx;
   padding: 16rpx 20rpx;
@@ -217,6 +264,10 @@ function handleVideoCall() {
 }
 .msg-row.mine .bubble {
   background: #95ec69;
+}
+.msg-row.system .bubble {
+  background: transparent;
+  padding: 0;
 }
 .system-text, .call-text {
   color: #2979ff;

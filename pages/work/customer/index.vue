@@ -24,6 +24,7 @@
             <view class="card-head">
               <text class="name">{{ displayName(item) }}</text>
               <text v-if="item.claimed" class="tag claimed">已认领</text>
+              <text v-else-if="claimRequireApproval && item.claimPending" class="tag pending">等待用户同意</text>
               <text v-else class="tag">未认领</text>
             </view>
             <view class="card-row">
@@ -73,6 +74,7 @@ const pageSize = 10
 const total = ref(0)
 const loading = ref(false)
 const loadingMore = ref(false)
+const claimRequireApproval = ref(true)
 
 const hasMore = computed(() => customerList.value.length < total.value)
 
@@ -187,6 +189,7 @@ async function fetchList(append = false) {
     const data = res.data || res
     const rows = data.rows || []
     total.value = data.total || 0
+    claimRequireApproval.value = data.claimRequireUserApproval !== false
     customerList.value = append ? customerList.value.concat(rows) : rows
   } catch (err) {
     uni.showToast({ title: err.msg || '加载失败', icon: 'none' })
@@ -282,6 +285,11 @@ function loadMore() {
 .tag.claimed {
   color: #2979ff;
   background: #eef4ff;
+}
+
+.tag.pending {
+  color: #e6a23c;
+  background: #fdf6ec;
 }
 
 .card-row {
