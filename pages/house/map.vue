@@ -297,7 +297,7 @@ let regionReloadTimer = null
 
 const MAP_ID = 'houseMap'
 
-const MARKER_ICON = '/static/images/tabbar/定位.png'
+const MARKER_ICON = '/static/images/tabbar/position.png'
 
 const MARKER_WIDTH = 22
 
