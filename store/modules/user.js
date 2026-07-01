@@ -165,18 +165,23 @@ export const useUserStore = defineStore('user', () => {
   const logOutAction = () => {
     return new Promise((resolve, reject) => {
       logout(token.value).then(() => {
-        SET_TOKEN('')
-        SET_ROLES([])
-        SET_PERMISSIONS([])
-        clearAgencyStatus()
-        removeToken()
-        storage.clean()
+        resetLocalSession()
         useAreaStore().clearArea()
         resolve()
       }).catch(error => {
         reject(error)
       })
     })
+  }
+
+  /** 仅清除本地登录态（不请求后端），用于会话过期等场景 */
+  const resetLocalSession = () => {
+    SET_TOKEN('')
+    SET_ROLES([])
+    SET_PERMISSIONS([])
+    clearAgencyStatus()
+    removeToken()
+    storage.clean()
   }
 
   return {
@@ -196,6 +201,7 @@ export const useUserStore = defineStore('user', () => {
     login: loginAction,
     wxLogin: wxLoginAction,
     getInfo: getInfoAction,
-    logOut: logOutAction
+    logOut: logOutAction,
+    resetLocalSession
   }
 })

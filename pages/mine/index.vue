@@ -78,19 +78,19 @@
     <view class="quick-row">
       <view v-if="loggedIn && isAgencyStaff" class="quick-item" @click="handleToWork">
         <view class="quick-icon work">
-          <image class="quick-icon-img" src="/static/images/icon/预览.png" mode="aspectFit"></image>
+          <image class="quick-icon-img" src="/static/images/icon/work.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">工作台</text>
       </view>
       <view class="quick-item" @click="handleToBrowse">
         <view class="quick-icon browse">
-          <image class="quick-icon-img" src="/static/images/icon/足迹.png" mode="aspectFit"></image>
+          <image class="quick-icon-img" src="/static/images/icon/footprint_.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">浏览足迹</text>
       </view>
       <view class="quick-item" @click="handleToFavorite">
         <view class="quick-icon favorite">
-          <image class="quick-icon-img" src="/static/images/icon/收藏.png" mode="aspectFit"></image>
+          <image class="quick-icon-img" src="/static/images/icon/favorite_.png" mode="aspectFit"></image>
         </view>
         <text class="quick-text">我的收藏</text>
       </view>
@@ -106,7 +106,6 @@ import { getToken } from '@/utils/auth'
 import { getUserCenterStats } from '@/api/userCenter'
 import { refreshMemberStatus, isMember, getMemberDisplayText } from '@/utils/member'
 import { refreshImTabBadge } from '@/utils/imTabBadge'
-import { syncLocationToServer } from '@/utils/userLocation'
 
 const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
@@ -159,7 +158,6 @@ async function refreshPage() {
   }
   try {
     await userStore.getInfo()
-    await syncLocationToServer()
     await refreshMemberStatus()
     memberActive.value = isMember()
     memberLabel.value = getMemberDisplayText()

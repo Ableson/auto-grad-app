@@ -105,7 +105,7 @@
 
       <view class="section-nav">
         <text
-          v-for="item in navSections"
+          v-for="item in contentSections"
           :key="item.key"
           class="nav-item"
           :class="{ active: activeSection === item.key }"
@@ -117,30 +117,28 @@
 
       <view class="section-wrap">
         <view
-          v-for="item in textSections"
+          v-for="item in contentSections"
           :key="item.key"
           :id="item.key"
           class="section-block"
         >
           <view class="section-title">{{ item.label }}</view>
-          <text class="section-content">{{ detail[item.field] || '暂无内容' }}</text>
-        </view>
-
-        <view v-if="attachmentList.length" id="attachments" class="section-block">
-          <view class="section-title">相关附件</view>
-          <view
-            v-for="file in attachmentList"
-            :key="file.id"
-            class="attachment-item"
-            @click="openAttachment(file)"
-          >
-            <uni-icons type="paperclip" size="18" color="#2979ff"></uni-icons>
-            <view class="attachment-info">
-              <text class="attachment-name">{{ file.fileName || '未命名附件' }}</text>
-              <text class="attachment-meta">{{ getFileTypeText(file.fileType) }} · {{ file.fileSuffix || '-' }}</text>
+          <text v-if="item.field" class="section-content">{{ detail[item.field] || '暂无内容' }}</text>
+          <template v-else>
+            <view
+              v-for="file in attachmentList"
+              :key="file.id"
+              class="attachment-item"
+              @click="openAttachment(file)"
+            >
+              <uni-icons type="paperclip" size="18" color="#2979ff"></uni-icons>
+              <view class="attachment-info">
+                <text class="attachment-name">{{ file.fileName || '未命名附件' }}</text>
+                <text class="attachment-meta">{{ getFileTypeText(file.fileType) }} · {{ file.fileSuffix || '-' }}</text>
+              </view>
+              <uni-icons type="right" size="16" color="#ccc"></uni-icons>
             </view>
-            <uni-icons type="right" size="16" color="#ccc"></uni-icons>
-          </view>
+          </template>
         </view>
       </view>
     </template>
@@ -194,7 +192,8 @@ export default {
       if (!this.detail) return false
       return !!(this.detail.payAccountName || this.detail.payBank || this.detail.payAccountNo)
     },
-    navSections() {
+    /** 正文 + 附件（附件仅在有数据时出现在导航与列表中） */
+    contentSections() {
       const sections = [...this.textSections]
       if (this.attachmentList.length) {
         sections.push({ key: 'attachments', label: '相关附件' })
@@ -254,6 +253,10 @@ export default {
       }
     },
     async syncMemberStatus() {
+      if (!getToken()) {
+        this.isMemberUser = false
+        return
+      }
       await refreshMemberStatus()
       this.isMemberUser = isMember()
     },
@@ -266,7 +269,9 @@ export default {
       this.activeSection = key
       uni.pageScrollTo({
         selector: `#${key}`,
-        duration: 300
+        duration: 300,
+        // 预留吸顶导航高度，避免标题被挡在导航条下方
+        offsetTop: -100
       })
     },
     previewImage(index) {
@@ -563,11 +568,12 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
-  padding: 24rpx 24rpx 0;
+  padding: 24rpx 24rpx 20rpx;
   position: sticky;
   top: 0;
   z-index: 2;
   background: #f5f6f7;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.05);
 }
 
 .nav-item {
@@ -585,14 +591,18 @@ export default {
 }
 
 .section-wrap {
-  padding: 0 24rpx;
+  padding: 8rpx 24rpx 0;
 }
 
 .section-block {
-  margin-top: 20rpx;
+  margin-top: 24rpx;
   background: #fff;
   border-radius: 16rpx;
   padding: 24rpx;
+}
+
+.section-block:first-child {
+  margin-top: 8rpx;
 }
 
 .section-title {

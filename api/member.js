@@ -1,11 +1,17 @@
 import request from '@/utils/request'
 
+import { getToken } from '@/utils/auth'
+
 /** 查询当前用户会员状态 */
 export function getMemberStatus() {
-  return request({
+  const cfg = {
     url: '/house/member/status',
     method: 'get'
-  })
+  }
+  if (!getToken()) {
+    cfg.headers = { isToken: false }
+  }
+  return request(cfg)
 }
 
 /** 会员套餐列表 */

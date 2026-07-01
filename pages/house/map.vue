@@ -210,7 +210,14 @@
 
             </view>
 
-            <text class="time">开拍 {{ formatTime(item.startTime) }}</text>
+            <view class="time-row">
+              <text class="time">开拍 {{ formatTime(item.startTime) }}</text>
+              <text
+                v-if="countdownText(item.startTime)"
+                class="countdown"
+                :class="{ started: countdownText(item.startTime) === '已开拍' }"
+              >{{ countdownText(item.startTime) }}</text>
+            </view>
 
           </view>
 
@@ -234,8 +241,9 @@
 
 import { ref, computed } from 'vue'
 
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { refreshImTabBadge } from '@/utils/imTabBadge'
+import { useAuctionCountdown } from '@/composables/useAuctionCountdown'
 
 import { useConfigStore } from '@/store/modules/config'
 
@@ -302,6 +310,13 @@ const MARKER_ICON = '/static/images/tabbar/position.png'
 const MARKER_WIDTH = 22
 
 const MARKER_HEIGHT = 22
+
+const {
+  applyServerTime,
+  startTicker,
+  stopCountdown,
+  countdownText
+} = useAuctionCountdown()
 
 
 
@@ -953,6 +968,8 @@ async function loadNearbyHouseList(reset = false) {
 
     total.value = res.total || 0
 
+    applyServerTime(res.serverTime)
+
     if (reset) {
 
       buildMapMarkers(markerData)
@@ -1042,6 +1059,8 @@ async function loadHouseList(reset = false) {
     const rows = res.rows || []
 
     total.value = res.total || 0
+
+    applyServerTime(res.serverTime)
 
     houseList.value = reset ? rows : houseList.value.concat(rows)
 
@@ -1419,6 +1438,15 @@ onLoad(async (options) => {
 
 onShow(() => {
   refreshImTabBadge()
+  startTicker()
+})
+
+onHide(() => {
+  stopCountdown()
+})
+
+onUnload(() => {
+  stopCountdown()
 })
 
 </script>
@@ -1951,12 +1979,30 @@ onShow(() => {
 
 
 
+.time-row {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
 .time {
 
   font-size: 24rpx;
 
   color: #666;
 
+}
+
+.countdown {
+  font-size: 24rpx;
+  color: #ff6a00;
+  font-weight: 500;
+}
+
+.countdown.started {
+  color: #999;
+  font-weight: 400;
 }
 
 

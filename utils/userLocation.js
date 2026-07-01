@@ -3,12 +3,15 @@ import { getToken } from '@/utils/auth'
 import {
   buildLocationPayload,
   getEffectiveLocation,
-  resolveCurrentProvince
+  getStoredProvince
 } from '@/utils/location'
 
 let syncing = false
 
-/** 登录/定位后将完整位置同步到服务端 */
+/**
+ * 将已有定位/省份同步到服务端（不主动 GPS、不逆地理编码）
+ * 仅在登录成功、首页定位完成后等场景调用；需新定位请走 resolveCurrentProvince
+ */
 export async function syncLocationToServer(options = {}) {
   if (!getToken() || syncing) return
   syncing = true
@@ -22,8 +25,10 @@ export async function syncLocationToServer(options = {}) {
       payload = buildLocationPayload(effective)
     }
     if (!payload) {
-      const resolved = await resolveCurrentProvince({ allowManual: false })
-      payload = buildLocationPayload(resolved)
+      const stored = getStoredProvince()
+      if (stored) {
+        payload = buildLocationPayload({ provinceName: stored })
+      }
     }
     if (payload?.provinceName) {
       await syncUserLocation(payload)

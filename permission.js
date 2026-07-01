@@ -1,38 +1,54 @@
 import { getToken } from '@/utils/auth'
+import { blockNavigationWhenSessionLocked } from '@/utils/sessionExpire'
 
-// 登录页面
-const loginPage = "/pages/login"
-  
-// 页面白名单
-const whiteList = [
-  '/pages/login', '/pages/register',
-  '/pages/index', '/pages/house/map', '/pages/house/detail/index',
-  '/pages/common/webview/index', '/pages/common/province/index'
+const loginPage = '/pages/login'
+
+/** 未登录可访问的页面（含 Tab：首页、地图、消息、我的） */
+const guestAllowList = [
+  '/pages/login',
+  '/pages/register',
+  '/pages/index',
+  '/pages/house/map',
+  '/pages/im/index',
+  '/pages/mine/index',
+  '/pages/house/detail/index',
+  '/pages/common/webview/index',
+  '/pages/common/province/index',
+  '/pages/member/index'
 ]
 
-// 检查地址白名单
-function checkWhite(url) {
-  const path = url.split('?')[0]
-  return whiteList.indexOf(path) !== -1
+function getPath(url) {
+  return (url || '').split('?')[0]
 }
 
-// 页面跳转验证拦截器
-let list = ["navigateTo", "redirectTo", "reLaunch", "switchTab"]
-list.forEach(item => {
+function isGuestAllowed(path) {
+  return guestAllowList.indexOf(path) !== -1
+}
+
+const navigateMethods = ['navigateTo', 'redirectTo', 'reLaunch', 'switchTab']
+navigateMethods.forEach(item => {
   uni.addInterceptor(item, {
     invoke(to) {
-      if (getToken()) {
-        if (to.url === loginPage) {
-          uni.reLaunch({ url: "/" })
-        }
-        return true
-      } else {
-        if (checkWhite(to.url)) {
-          return true
-        }
-        uni.reLaunch({ url: loginPage })
+      const path = getPath(to.url)
+
+      if (blockNavigationWhenSessionLocked()) {
         return false
       }
+
+      if (getToken()) {
+        if (path === loginPage) {
+          uni.reLaunch({ url: '/pages/index' })
+          return false
+        }
+        return true
+      }
+
+      if (isGuestAllowed(path)) {
+        return true
+      }
+
+      uni.navigateTo({ url: loginPage })
+      return false
     },
     fail(err) {
       console.log(err)

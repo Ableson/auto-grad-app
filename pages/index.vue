@@ -168,7 +168,14 @@
 
           </view>
 
-          <text class="time">开拍 {{ formatTime(item.startTime) }}</text>
+          <view class="time-row">
+            <text class="time">开拍 {{ formatTime(item.startTime) }}</text>
+            <text
+              v-if="countdownText(item.startTime)"
+              class="countdown"
+              :class="{ started: countdownText(item.startTime) === '已开拍' }"
+            >{{ countdownText(item.startTime) }}</text>
+          </view>
 
         </view>
 
@@ -198,6 +205,11 @@ import { getSearchHistory } from '@/api/search'
 import { getToken } from '@/utils/auth'
 
 import { refreshImTabBadge } from '@/utils/imTabBadge'
+import {
+  calcServerOffset,
+  formatCountdownToStart,
+  startCountdownTicker
+} from '@/utils/auctionCountdown'
 
 import {
 
@@ -279,7 +291,13 @@ export default {
 
         searchValue: ''
 
-      }
+      },
+
+      serverOffset: 0,
+
+      countdownTick: 0,
+
+      countdownTimer: null
 
     }
 
@@ -329,6 +347,20 @@ export default {
 
     refreshImTabBadge()
 
+    this.startCountdownTimer()
+
+  },
+
+  onHide() {
+
+    this.stopCountdownTimer()
+
+  },
+
+  onUnload() {
+
+    this.stopCountdownTimer()
+
   },
 
   methods: {
@@ -340,6 +372,48 @@ export default {
       if (!time) return '-'
 
       return String(time).replace('T', ' ').slice(0, 16)
+
+    },
+
+    countdownText(startTime) {
+
+      void this.countdownTick
+
+      return formatCountdownToStart(startTime, this.serverOffset)
+
+    },
+
+    startCountdownTimer() {
+
+      this.stopCountdownTimer()
+
+      this.countdownTimer = setInterval(() => {
+
+        this.countdownTick += 1
+
+      }, 1000)
+
+    },
+
+    stopCountdownTimer() {
+
+      if (this.countdownTimer) {
+
+        clearInterval(this.countdownTimer)
+
+        this.countdownTimer = null
+
+      }
+
+    },
+
+    applyServerTime(serverTime) {
+
+      if (serverTime) {
+
+        this.serverOffset = calcServerOffset(serverTime)
+
+      }
 
     },
 
@@ -551,6 +625,8 @@ export default {
         const rows = res.rows || []
 
         this.total = res.total || 0
+
+        this.applyServerTime(res.serverTime)
 
         if (reset) {
           this.houseList = rows
@@ -1060,12 +1136,30 @@ export default {
 
 
 
+.time-row {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
 .time {
 
   font-size: 24rpx;
 
   color: #999;
 
+}
+
+.countdown {
+  font-size: 24rpx;
+  color: #ff6a00;
+  font-weight: 500;
+}
+
+.countdown.started {
+  color: #999;
+  font-weight: 400;
 }
 
 

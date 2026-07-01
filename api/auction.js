@@ -1,12 +1,17 @@
 import request from '@/utils/request'
+import { isLoggedIn } from '@/utils/auth'
 
 /** 查询拍卖标的列表（支持 provinceName / searchValue；已登录时携带 token 以便记录搜索历史） */
 export function listAuction(query) {
-  return request({
+  const cfg = {
     url: '/house/auction/list',
     method: 'get',
     params: query
-  })
+  }
+  if (!isLoggedIn()) {
+    cfg.headers = { isToken: false }
+  }
+  return request(cfg)
 }
 
 /** 查询拍卖标的详情 */

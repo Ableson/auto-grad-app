@@ -1,5 +1,11 @@
 <template>
-  <view class="im-page">
+  <view v-if="!loggedIn" class="login-gate">
+    <uni-icons type="chatboxes" size="64" color="#ccc"></uni-icons>
+    <text class="gate-title">登录后查看消息</text>
+    <text class="gate-desc">辅拍机构联系、会话记录需登录后使用</text>
+    <button class="gate-btn" type="primary" @click="goLogin">去登录</button>
+  </view>
+  <view v-else class="im-page">
     <view v-if="pendingRequests.length" class="section">
       <view class="section-title">联系申请</view>
       <view v-for="item in pendingRequests" :key="item.id" class="request-card">
@@ -49,10 +55,10 @@
 </template>
 
 <script setup>
-import { ref, getCurrentInstance } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getImInbox, acceptImRequest, rejectImRequest } from '@/api/im'
-import { getToken } from '@/utils/auth'
+import { goLoginFromTab, isLoggedIn } from '@/utils/tabLogin'
 import { refreshImTabBadge } from '@/utils/imTabBadge'
 import config from '@/config'
 import defAva from '@/static/images/profile.jpg'
@@ -65,14 +71,16 @@ const { proxy } = getCurrentInstance()
 const userStore = useUserStore()
 const pendingRequests = ref([])
 const conversations = ref([])
+const loggedIn = computed(() => isLoggedIn())
 
 onShow(() => {
-  if (!getToken()) {
-    proxy.$tab.reLaunch('/pages/login')
-    return
-  }
+  if (!loggedIn.value) return
   loadInbox()
 })
+
+function goLogin() {
+  goLoginFromTab()
+}
 
 async function loadInbox() {
   try {
@@ -143,6 +151,33 @@ function openChat(item) {
 </script>
 
 <style lang="scss" scoped>
+.login-gate {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  background: #f4f4f4;
+  box-sizing: border-box;
+}
+.gate-title {
+  margin-top: 32rpx;
+  font-size: 34rpx;
+  color: #333;
+  font-weight: 600;
+}
+.gate-desc {
+  margin-top: 16rpx;
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+}
+.gate-btn {
+  margin-top: 48rpx;
+  width: 320rpx;
+  border-radius: 44rpx;
+}
 .im-page {
   min-height: 100vh;
   background: #f4f4f4;

@@ -13,27 +13,16 @@
 
   // 初始化应用
   function initApp() {
-    // 初始化应用配置
     initConfig()
     if (getToken()) {
       useAreaStore().loadAreaOnce().catch(() => {})
       useUserStore().refreshAgencyStatus().catch(() => {})
     }
-    // 检查用户登录状态
-    //#ifdef H5
-    checkLogin()
-    //#endif
   }
 
   function initConfig() {
     useConfigStore().setConfig(config)
     useConfigStore().loadServerConfig().catch(() => {})
-  }
-
-  function checkLogin() {
-    if (!getToken()) {
-      proxy.$tab.reLaunch('/pages/login') 
-    }
   }
 </script>
 

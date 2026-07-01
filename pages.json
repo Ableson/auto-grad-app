@@ -1,15 +1,5 @@
 {
   "pages": [{
-    "path": "pages/login",
-    "style": {
-      "navigationBarTitleText": "登录"
-    }
-  }, {
-    "path": "pages/register",
-    "style": {
-      "navigationBarTitleText": "注册"
-    }
-  }, {
     "path": "pages/index",
     "style": {
       "navigationBarTitleText": "首页",
@@ -19,6 +9,27 @@
     "path": "pages/house/map",
     "style": {
       "navigationBarTitleText": "地图找房"
+    }
+  }, {
+    "path": "pages/im/index",
+    "style": {
+      "navigationBarTitleText": "消息",
+      "enablePullDownRefresh": true
+    }
+  }, {
+    "path": "pages/mine/index",
+    "style": {
+      "navigationBarTitleText": "我的"
+    }
+  }, {
+    "path": "pages/login",
+    "style": {
+      "navigationBarTitleText": "登录"
+    }
+  }, {
+    "path": "pages/register",
+    "style": {
+      "navigationBarTitleText": "注册"
     }
   }, {
     "path": "pages/house/detail/index",
@@ -39,11 +50,6 @@
     "path": "pages/work/index",
     "style": {
       "navigationBarTitleText": "工作台"
-    }
-  }, {
-    "path": "pages/mine/index",
-    "style": {
-      "navigationBarTitleText": "我的"
     }
   }, {
     "path": "pages/mine/avatar/index",
@@ -110,12 +116,6 @@
     "path": "pages/mine/agency/apply",
     "style": {
       "navigationBarTitleText": "辅拍机构入驻"
-    }
-  }, {
-    "path": "pages/im/index",
-    "style": {
-      "navigationBarTitleText": "消息",
-      "enablePullDownRefresh": true
     }
   }, {
     "path": "pages/im/chat/index",

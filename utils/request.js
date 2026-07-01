@@ -1,8 +1,8 @@
 import config from '@/config'
 import { getToken } from '@/utils/auth'
 import errorCode from '@/utils/errorCode'
-import { useUserStore } from '@/store/modules/user'
-import { toast, showConfirm, tansParams } from '@/utils/common'
+import { toast, tansParams } from '@/utils/common'
+import { handleHttp401 } from '@/utils/sessionExpire'
 
 let timeout = 10000
 const baseUrl = config.baseUrl
@@ -40,13 +40,7 @@ const request = config => {
             reject('401')
             return
           }
-          showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then(res => {
-            if (res.confirm) {
-              useUserStore().logOut().then(res => {
-                uni.reLaunch({ url: '/pages/login' })
-              })
-            }
-          })
+          handleHttp401(skipToken)
           reject('无效的会话，或者会话已过期，请重新登录。')
         } else if (code === 500) {
           toast(msg)
