@@ -82,6 +82,36 @@
 
         </view>
 
+        <view class="price-filter-inline">
+          <text class="price-filter-label">起拍</text>
+          <view class="price-range-box">
+            <input
+              v-model="minStartPrice"
+              class="price-filter-input"
+              type="digit"
+              placeholder="低"
+              @confirm="handleSearch"
+            />
+            <text class="price-filter-sep">-</text>
+            <input
+              v-model="maxStartPrice"
+              class="price-filter-input"
+              type="digit"
+              placeholder="高"
+              @confirm="handleSearch"
+            />
+          </view>
+          <text class="price-filter-unit">万</text>
+          <uni-icons
+            v-if="minStartPrice || maxStartPrice"
+            type="closeempty"
+            size="14"
+            color="#bbb"
+            class="price-filter-clear"
+            @click="clearPriceFilter"
+          ></uni-icons>
+        </view>
+
         <text class="search-btn" @click="handleSearch">搜索</text>
 
       </view>
@@ -121,7 +151,11 @@
     <scroll-view
       scroll-y
       class="house-scroll"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      refresher-background="#f5f6f7"
       :lower-threshold="120"
+      @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
       @click="closeMenuDropdown(); showHistory = false"
     >
@@ -263,6 +297,10 @@ export default {
 
       activeSearchValue: '',
 
+      minStartPrice: '',
+
+      maxStartPrice: '',
+
       searchHistory: [],
 
       showHistory: false,
@@ -274,6 +312,10 @@ export default {
       loading: false,
 
       loadingMore: false,
+
+      listFetching: false,
+
+      refreshing: false,
 
       locating: false,
 
@@ -591,6 +633,19 @@ export default {
 
     },
 
+    clearPriceFilter() {
+      this.minStartPrice = ''
+      this.maxStartPrice = ''
+      this.loadList()
+    },
+
+    parsePriceWan(value) {
+      const text = String(value || '').trim()
+      if (!text) return undefined
+      const num = Number(text)
+      return Number.isFinite(num) && num >= 0 ? num : undefined
+    },
+
     async handleSearch() {
       const keyword = (this.searchKeyword || '').trim()
       this.showHistory = false
@@ -606,52 +661,60 @@ export default {
     },
 
     async loadList(reset = true) {
+      if (this.listFetching) return
+      if (!reset && !this.hasMore) return
 
-      if (reset) {
-        this.loading = true
-        this.queryParams.pageNum = 1
-      } else {
-        this.loadingMore = true
-      }
+      const nextPage = reset ? 1 : this.queryParams.pageNum + 1
+      this.listFetching = true
+      if (reset && !this.refreshing) this.loading = true
+      if (!reset) this.loadingMore = true
 
       try {
-
-        this.queryParams.provinceName = this.provinceName || undefined
-
-        this.queryParams.searchValue = this.activeSearchValue || undefined
-
-        const res = await listAuction(this.queryParams)
+        const minStartPrice = this.parsePriceWan(this.minStartPrice)
+        const maxStartPrice = this.parsePriceWan(this.maxStartPrice)
+        const res = await listAuction({
+          ...this.queryParams,
+          pageNum: nextPage,
+          provinceName: this.provinceName || undefined,
+          searchValue: this.activeSearchValue || undefined,
+          minStartPrice,
+          maxStartPrice
+        })
 
         const rows = res.rows || []
-
         this.total = res.total || 0
-
         this.applyServerTime(res.serverTime)
+        this.queryParams.pageNum = nextPage
 
         if (reset) {
           this.houseList = rows
         } else {
           this.houseList = this.houseList.concat(rows)
         }
-
       } catch (err) {
-
         console.error('房源列表加载失败', err)
-
       } finally {
-
+        this.listFetching = false
         this.loading = false
-
         this.loadingMore = false
-
       }
-
     },
 
     loadMore() {
-      if (!this.hasMore || this.loadingMore || this.loading) return
-      this.queryParams.pageNum += 1
+      if (this.refreshing) return
       this.loadList(false)
+    },
+
+    async onRefresh() {
+      if (this.refreshing || this.listFetching) return
+      this.refreshing = true
+      this.closeMenuDropdown()
+      this.showHistory = false
+      try {
+        await this.loadList(true)
+      } finally {
+        this.refreshing = false
+      }
     },
 
     openDetail(item) {
@@ -904,6 +967,8 @@ export default {
 
   align-items: center;
 
+  gap: 12rpx;
+
 }
 
 
@@ -911,6 +976,8 @@ export default {
 .search-box {
 
   flex: 1;
+
+  min-width: 0;
 
   display: flex;
 
@@ -932,6 +999,8 @@ export default {
 
   flex: 1;
 
+  min-width: 0;
+
   margin-left: 12rpx;
 
   font-size: 28rpx;
@@ -942,9 +1011,109 @@ export default {
 
 
 
-.search-btn {
+.price-filter-inline {
 
-  margin-left: 16rpx;
+  display: flex;
+
+  align-items: center;
+
+  flex-shrink: 0;
+
+  height: 72rpx;
+
+  padding: 0 12rpx 0 14rpx;
+
+  background: #f5f6f7;
+
+  border-radius: 32rpx;
+
+  gap: 6rpx;
+
+}
+
+
+
+.price-filter-label {
+
+  font-size: 22rpx;
+
+  color: #888;
+
+  flex-shrink: 0;
+
+}
+
+
+
+.price-range-box {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 4rpx;
+
+}
+
+
+
+.price-filter-input {
+
+  width: 64rpx;
+
+  height: 48rpx;
+
+  background: #fff;
+
+  border-radius: 10rpx;
+
+  padding: 0 8rpx;
+
+  font-size: 24rpx;
+
+  color: #333;
+
+  text-align: center;
+
+}
+
+
+
+.price-filter-sep {
+
+  color: #ccc;
+
+  font-size: 22rpx;
+
+  line-height: 1;
+
+}
+
+
+
+.price-filter-unit {
+
+  font-size: 22rpx;
+
+  color: #888;
+
+  flex-shrink: 0;
+
+}
+
+
+
+.price-filter-clear {
+
+  flex-shrink: 0;
+
+  padding: 4rpx;
+
+}
+
+
+
+.search-btn {
 
   font-size: 28rpx;
 
@@ -952,7 +1121,9 @@ export default {
 
   flex-shrink: 0;
 
-  padding: 0 8rpx;
+  padding: 0 4rpx;
+
+  white-space: nowrap;
 
 }
 

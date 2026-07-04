@@ -59,7 +59,19 @@
         </view>
         <view class="info-row">
           <text class="label">市场价</text>
-          <text class="value">{{ formatYuan(detail.marketPriceYuan) }}</text>
+          <text class="value">{{ formatWan(baseInfo?.assessPrice) }}</text>
+        </view>
+        <view v-if="showBuildingArea" class="info-row">
+          <text class="label">建筑面积</text>
+          <text class="value">{{ formatArea(baseInfo.buildingArea) }}</text>
+        </view>
+        <view v-if="baseInfo && baseInfo.priceDiff != null" class="info-row">
+          <text class="label">价格差异</text>
+          <text class="value">{{ formatWan(baseInfo.priceDiff) }}</text>
+        </view>
+        <view v-if="baseInfo && baseInfo.discountRate != null" class="info-row">
+          <text class="label">折扣率</text>
+          <text class="value">{{ formatDiscount(baseInfo.discountRate) }}</text>
         </view>
         <view class="info-row">
           <text class="label">保证金</text>
@@ -174,6 +186,7 @@ export default {
       favoriteLoading: false,
       loading: true,
       detail: null,
+      baseInfo: null,
       imageList: [],
       attachmentList: [],
       activeSection: 'assetIntro',
@@ -199,6 +212,10 @@ export default {
         sections.push({ key: 'attachments', label: '相关附件' })
       }
       return sections
+    },
+    showBuildingArea() {
+      const type = this.baseInfo && this.baseInfo.itemType
+      return (type === '住宅' || type === '商业') && this.baseInfo && this.baseInfo.buildingArea != null
     }
   },
   onLoad(options) {
@@ -263,7 +280,26 @@ export default {
     getFileTypeText,
     formatYuan(value) {
       if (value === null || value === undefined || value === '') return '-'
-      return `${value} 元`
+      const num = Number(value)
+      if (Number.isNaN(num) || num <= 0) return '-'
+      if (num >= 10000) {
+        const wan = num / 10000
+        const text = Number.isInteger(wan) ? String(wan) : wan.toFixed(2).replace(/\.?0+$/, '')
+        return `${text} 万`
+      }
+      return `${num.toLocaleString()} 元`
+    },
+    formatWan(value) {
+      if (value === null || value === undefined || value === '') return '-'
+      return `${value} 万`
+    },
+    formatArea(value) {
+      if (value === null || value === undefined || value === '') return '-'
+      return `${value} ㎡`
+    },
+    formatDiscount(value) {
+      if (value === null || value === undefined || value === '') return '-'
+      return `${value}%`
     },
     scrollToSection(key) {
       this.activeSection = key
@@ -350,8 +386,9 @@ export default {
           listAuctionFile({ dataId: this.dataId, pageNum: 1, pageSize: 200 }),
           getAuctionByDataId(this.dataId)
         ])
-        this.detail = detailRes.data || null
-        this.hasAuctionLink = !!(baseRes.data && baseRes.data.hasAuctionLink)
+        this.detail = (detailRes && detailRes.data !== undefined) ? detailRes.data : (detailRes || null)
+        this.baseInfo = (baseRes && baseRes.data !== undefined) ? baseRes.data : (baseRes || null)
+        this.hasAuctionLink = !!(this.baseInfo && this.baseInfo.hasAuctionLink)
         const files = this.sortFiles(fileRes.rows || []).map(item => ({
           ...item,
           fileUrl: resolveFileUrl(item.fileUrl)
@@ -364,6 +401,7 @@ export default {
       } catch (err) {
         console.error('详情加载失败', err)
         this.detail = null
+        this.baseInfo = null
         this.hasAuctionLink = false
         this.imageList = []
         this.attachmentList = []
