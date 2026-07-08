@@ -28,8 +28,18 @@
         </view>
         <view class="hero-body">
           <view class="hero-title-wrap">
-            <view v-if="hasAuctionLink" class="auction-link-btn" :class="{ locked: !isMemberUser }" @click="openAuctionLink">
-              <uni-icons type="vip-filled" size="14" :color="isMemberUser ? '#ffffff' : '#ffb020'"></uni-icons>
+            <view
+              v-if="hasAuctionLink"
+              class="auction-link-btn"
+              :class="{ locked: auctionLinkMembershipRequired && !canAccessAuctionLink }"
+              @click="openAuctionLink"
+            >
+              <uni-icons
+                v-if="auctionLinkMembershipRequired"
+                type="vip-filled"
+                size="14"
+                :color="canAccessAuctionLink ? '#ffffff' : '#ffb020'"
+              ></uni-icons>
               <text class="hero-title">{{ pageTitle }}</text>
             </view>
             <text v-else class="hero-title hero-title-only">{{ pageTitle }}</text>
@@ -164,7 +174,13 @@ import { getAuctionByDataId, getAuctionLink } from '@/api/auction'
 import { toggleFavorite as toggleFavoriteApi, checkFavorite } from '@/api/userBehavior'
 import { getToken } from '@/utils/auth'
 import { getAuctionStatusLabel } from '@/utils/auctionStatus'
-import { isMember, refreshMemberStatus, goMemberPurchase } from '@/utils/member'
+import {
+  refreshFeatureAccessByPath,
+  canAccessPath,
+  isPathMembershipRequired,
+  goMemberPurchase
+} from '@/utils/member'
+import { buildAuctionLinkPath } from '@/utils/memberPaths'
 import { openWebView } from '@/utils/webview'
 import {
   FILE_TYPE_COVER,
@@ -181,7 +197,8 @@ export default {
       dataId: '',
       pageTitle: '标的详情',
       hasAuctionLink: false,
-      isMemberUser: false,
+      auctionLinkMembershipRequired: false,
+      canAccessAuctionLink: true,
       isFavorited: false,
       favoriteLoading: false,
       loading: true,
@@ -223,10 +240,10 @@ export default {
     this.pageTitle = options.title ? decodeURIComponent(options.title) : '标的详情'
     uni.setNavigationBarTitle({ title: '标的详情' })
     this.loadPageData()
-    this.syncMemberStatus()
+    this.syncAuctionLinkAccess()
   },
   onShow() {
-    this.syncMemberStatus()
+    this.syncAuctionLinkAccess()
     this.syncFavoriteStatus()
   },
   methods: {
@@ -269,13 +286,11 @@ export default {
         this.favoriteLoading = false
       }
     },
-    async syncMemberStatus() {
-      if (!getToken()) {
-        this.isMemberUser = false
-        return
-      }
-      await refreshMemberStatus()
-      this.isMemberUser = isMember()
+    async syncAuctionLinkAccess() {
+      const apiPath = buildAuctionLinkPath(this.dataId)
+      await refreshFeatureAccessByPath(apiPath, 'GET')
+      this.auctionLinkMembershipRequired = isPathMembershipRequired(apiPath, 'GET')
+      this.canAccessAuctionLink = canAccessPath(apiPath, 'GET')
     },
     getFileTypeText,
     formatYuan(value) {
@@ -321,9 +336,20 @@ export default {
         uni.showToast({ title: '暂无法拍链接', icon: 'none' })
         return
       }
-      await this.syncMemberStatus()
-      if (!this.isMemberUser) {
-        goMemberPurchase({ dataId: this.dataId })
+      await this.syncAuctionLinkAccess()
+      if (this.auctionLinkMembershipRequired && !this.canAccessAuctionLink) {
+        if (!getToken()) {
+          uni.showToast({ title: '请先登录', icon: 'none' })
+          setTimeout(() => {
+            uni.navigateTo({ url: '/pages/login' })
+          }, 500)
+          return
+        }
+        goMemberPurchase({
+          dataId: this.dataId,
+          path: buildAuctionLinkPath(this.dataId),
+          method: 'GET'
+        })
         return
       }
       uni.showLoading({ title: '加载中...' })

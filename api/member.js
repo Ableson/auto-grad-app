@@ -14,11 +14,43 @@ export function getMemberStatus() {
   return request(cfg)
 }
 
-/** 会员套餐列表 */
-export function getMemberPlans() {
-  return request({
+/** 会员套餐列表（可按类型筛选） */
+export function getMemberPlans(planType) {
+  const cfg = {
     url: '/house/member/plan/list',
     method: 'get'
+  }
+  if (planType) {
+    cfg.params = { planType }
+  }
+  return request(cfg)
+}
+
+/** 查询指定 API 路径的会员访问权限 */
+export function getMemberFeatureAccess({ path, method = 'GET', planType } = {}) {
+  const cfg = {
+    url: '/house/member/feature/access',
+    method: 'get',
+    params: {}
+  }
+  if (path) {
+    cfg.params.path = path
+    cfg.params.method = method
+  } else if (planType) {
+    cfg.params.planType = planType
+  }
+  if (!getToken()) {
+    cfg.headers = { isToken: false }
+  }
+  return request(cfg)
+}
+
+/** 可配置的保护路径下拉 */
+export function getMemberProtectPathOptions() {
+  return request({
+    url: '/house/member/path/options',
+    method: 'get',
+    headers: { isToken: false }
   })
 }
 

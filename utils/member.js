@@ -1,4 +1,4 @@
-import { getMemberStatus } from '@/api/member'
+import { getMemberStatus, getMemberFeatureAccess } from '@/api/member'
 import { getToken } from '@/utils/auth'
 
 const MEMBER_PAGE = '/pages/member/index'
@@ -11,10 +11,13 @@ let memberState = {
   loggedIn: false,
   planName: '',
   planCode: '',
+  planType: '',
   permanent: false,
   expireTime: null,
   cachedAt: 0
 }
+
+const featureAccessCache = {}
 
 const CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -76,6 +79,7 @@ export async function refreshMemberStatus() {
       permanent: !!res.permanent,
       planName: res.planName || '',
       planCode: res.planCode || '',
+      planType: res.planType || '',
       expireTime: res.expireTime || null,
       loggedIn: !!res.loggedIn || !!getToken(),
       cachedAt: Date.now()
@@ -86,6 +90,7 @@ export async function refreshMemberStatus() {
       permanent: false,
       planName: '',
       planCode: '',
+      planType: '',
       expireTime: null,
       loggedIn: !!getToken(),
       cachedAt: Date.now()
@@ -94,10 +99,76 @@ export async function refreshMemberStatus() {
   return memberState.member
 }
 
+const defaultFeatureAccess = {
+  required: false,
+  member: false,
+  canAccess: true,
+  loggedIn: false,
+  planType: '',
+  pathName: ''
+}
+
+function cacheKey(path, method = 'GET') {
+  return `${method.toUpperCase()} ${path}`
+}
+
+/** 刷新指定 API 路径的会员访问权限 */
+export async function refreshFeatureAccessByPath(path, method = 'GET') {
+  const key = cacheKey(path, method)
+  try {
+    const res = await getMemberFeatureAccess({ path, method })
+    const data = res.data || res
+    featureAccessCache[key] = {
+      required: !!data.required,
+      member: !!data.member,
+      canAccess: data.canAccess !== false,
+      loggedIn: !!data.loggedIn || !!getToken(),
+      planType: data.planType || '',
+      pathName: data.pathName || '',
+      pathPattern: data.pathPattern || '',
+      cachedAt: Date.now()
+    }
+  } catch (err) {
+    featureAccessCache[key] = {
+      ...defaultFeatureAccess,
+      loggedIn: !!getToken(),
+      cachedAt: Date.now()
+    }
+  }
+  return getFeatureAccessStateByPath(path, method)
+}
+
+export function getFeatureAccessStateByPath(path, method = 'GET') {
+  const key = cacheKey(path, method)
+  const cached = featureAccessCache[key]
+  if (cached && Date.now() - cached.cachedAt <= CACHE_TTL_MS) {
+    return cached
+  }
+  return { ...defaultFeatureAccess, loggedIn: !!getToken() }
+}
+
+export function isPathMembershipRequired(path, method = 'GET') {
+  return !!getFeatureAccessStateByPath(path, method).required
+}
+
+export function canAccessPath(path, method = 'GET') {
+  return getFeatureAccessStateByPath(path, method).canAccess !== false
+}
+
 /** 跳转到会员购买页 */
 export function goMemberPurchase(options = {}) {
-  const { dataId = '' } = options
-  const query = dataId ? `?dataId=${encodeURIComponent(dataId)}` : ''
+  const { dataId = '', planType = '', path = '', method = 'GET' } = options
+  const queryParts = []
+  if (path) {
+    queryParts.push(`path=${encodeURIComponent(path)}`)
+    queryParts.push(`method=${encodeURIComponent(method)}`)
+  } else if (planType) {
+    queryParts.push(`planType=${encodeURIComponent(planType)}`)
+  }
+  if (dataId) {
+    queryParts.push(`dataId=${encodeURIComponent(dataId)}`)
+  }
+  const query = queryParts.length ? `?${queryParts.join('&')}` : ''
   uni.navigateTo({
     url: `${MEMBER_PAGE}${query}`
   })

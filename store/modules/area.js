@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getAreaList } from '@/api/area'
-import { getToken } from '@/utils/auth'
 
 export const useAreaStore = defineStore('area', () => {
   const areaList = ref([])
@@ -91,9 +90,6 @@ export const useAreaStore = defineStore('area', () => {
   }
 
   async function loadAreaOnce() {
-    if (!getToken()) {
-      return
-    }
     if (loaded.value || loading.value) {
       return
     }

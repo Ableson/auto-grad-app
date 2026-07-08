@@ -3,14 +3,14 @@
     <view class="hero-card">
       <uni-icons type="vip-filled" size="48" color="#2979ff"></uni-icons>
       <text class="hero-title">开通会员</text>
-      <text class="hero-desc">解锁法拍原站链接，快速跳转阿里/京东拍卖页面</text>
+      <text class="hero-desc">{{ heroDesc }}</text>
     </view>
 
     <view class="benefit-card">
       <view class="benefit-title">会员权益</view>
       <view class="benefit-item">
         <uni-icons type="checkmarkempty" size="18" color="#18bc37"></uni-icons>
-        <text>查看并跳转法拍原站链接</text>
+        <text>{{ pathName || '会员专属功能' }}</text>
       </view>
       <view class="benefit-item">
         <uni-icons type="checkmarkempty" size="18" color="#18bc37"></uni-icons>
@@ -22,7 +22,7 @@
       </view>
     </view>
 
-    <view class="plan-list">
+    <view v-if="plans.length" class="plan-list">
       <view
         v-for="plan in plans"
         :key="plan.id"
@@ -40,8 +40,9 @@
         <text class="plan-tip">{{ planTip(plan) }}</text>
       </view>
     </view>
+    <view v-else class="empty-tip">暂无可购买的会员套餐</view>
 
-    <button class="purchase-btn" :loading="purchasing" @click="handlePurchase">
+    <button v-if="plans.length" class="purchase-btn" :loading="purchasing" @click="handlePurchase">
       立即开通
     </button>
 
@@ -50,7 +51,7 @@
 </template>
 
 <script>
-import { getMemberPlans, createMemberPayOrder, queryMemberPayOrder } from '@/api/member'
+import { getMemberPlans, createMemberPayOrder, queryMemberPayOrder, getMemberFeatureAccess } from '@/api/member'
 import { refreshMemberStatus } from '@/utils/member'
 import { getToken } from '@/utils/auth'
 import { requestWechatPay, waitForMemberPaySuccess } from '@/utils/wxPay'
@@ -59,13 +60,28 @@ export default {
   data() {
     return {
       dataId: '',
+      apiPath: '',
+      apiMethod: 'GET',
+      planType: '',
+      pathName: '',
       plans: [],
       selectedPlanId: null,
       purchasing: false
     }
   },
-  onLoad(options) {
+  computed: {
+    heroDesc() {
+      if (this.pathName) {
+        return `开通会员后可使用：${this.pathName}`
+      }
+      return '开通会员，享受更多专属权益'
+    }
+  },
+  async onLoad(options) {
     this.dataId = options.dataId || ''
+    this.apiPath = options.path ? decodeURIComponent(options.path) : ''
+    this.apiMethod = options.method || 'GET'
+    this.planType = options.planType || ''
     if (!getToken()) {
       uni.showModal({
         title: '请先登录',
@@ -81,19 +97,44 @@ export default {
       })
       return
     }
+    await this.resolvePlanContext()
+    uni.setNavigationBarTitle({ title: this.pathName ? `开通${this.pathName}` : '开通会员' })
     this.loadPlans()
   },
   methods: {
+    async resolvePlanContext() {
+      if (this.apiPath) {
+        try {
+          const res = await getMemberFeatureAccess({
+            path: this.apiPath,
+            method: this.apiMethod
+          })
+          const data = res.data || res
+          this.planType = data.planType || this.planType
+          this.pathName = data.pathName || ''
+        } catch (err) {
+          console.error('解析会员路径失败', err)
+        }
+      }
+      if (!this.planType) {
+        this.planType = 'general'
+      }
+    },
     planTip(plan) {
       if (plan.days < 0) return '永久有效'
       return `${plan.days} 天有效`
     },
     async loadPlans() {
       try {
-        const res = await getMemberPlans()
+        const res = await getMemberPlans(this.planType)
         this.plans = res.data || []
         if (this.plans.length) {
           this.selectedPlanId = this.plans[0].id
+        } else {
+          uni.showToast({ title: '暂无可购买套餐', icon: 'none' })
+          setTimeout(() => {
+            uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/mine/index' }) })
+          }, 1200)
         }
       } catch (err) {
         console.error('加载套餐失败', err)
@@ -153,7 +194,6 @@ export default {
   min-height: 100vh;
   background: linear-gradient(180deg, #eef4ff 0%, #f5f6f7 280rpx);
   padding: 32rpx 24rpx 60rpx;
-  box-sizing: border-box;
 }
 
 .hero-card {
@@ -163,43 +203,43 @@ export default {
   padding: 48rpx 32rpx;
   background: #fff;
   border-radius: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(41, 121, 255, 0.12);
+  box-shadow: 0 8rpx 24rpx rgba(41, 121, 255, 0.08);
 }
 
 .hero-title {
   margin-top: 16rpx;
   font-size: 40rpx;
-  font-weight: 700;
-  color: #333;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .hero-desc {
   margin-top: 12rpx;
   font-size: 26rpx;
-  color: #888;
+  color: #666;
   text-align: center;
-  line-height: 1.6;
 }
 
 .benefit-card {
   margin-top: 24rpx;
+  padding: 32rpx;
   background: #fff;
-  border-radius: 20rpx;
-  padding: 28rpx;
+  border-radius: 24rpx;
 }
 
 .benefit-title {
   font-size: 30rpx;
   font-weight: 600;
   color: #333;
+  margin-bottom: 20rpx;
 }
 
 .benefit-item {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-top: 20rpx;
-  font-size: 26rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
   color: #555;
 }
 
@@ -210,24 +250,24 @@ export default {
 .plan-card {
   background: #fff;
   border-radius: 20rpx;
-  padding: 28rpx;
+  padding: 28rpx 32rpx;
   margin-bottom: 16rpx;
   border: 2rpx solid transparent;
 }
 
 .plan-card.active {
   border-color: #2979ff;
-  background: #f5f8ff;
+  background: #f5f9ff;
 }
 
 .plan-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
 }
 
 .plan-name {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #333;
 }
@@ -235,46 +275,47 @@ export default {
 .plan-price {
   display: flex;
   align-items: baseline;
-  color: #e64340;
+  color: #2979ff;
 }
 
 .price-symbol {
-  font-size: 28rpx;
+  font-size: 24rpx;
 }
 
 .price-value {
-  font-size: 48rpx;
+  font-size: 40rpx;
   font-weight: 700;
 }
 
 .plan-tip {
   display: block;
-  margin-top: 12rpx;
-  font-size: 22rpx;
+  margin-top: 8rpx;
+  font-size: 24rpx;
   color: #999;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+  padding: 48rpx 0;
 }
 
 .purchase-btn {
   margin-top: 32rpx;
-  height: 92rpx;
-  line-height: 92rpx;
-  border-radius: 46rpx;
-  background: linear-gradient(135deg, #5cadff, #2979ff);
+  background: #2979ff;
   color: #fff;
+  border-radius: 48rpx;
   font-size: 32rpx;
-  font-weight: 600;
-  border: none;
-}
-
-.purchase-btn::after {
-  border: none;
+  height: 88rpx;
+  line-height: 88rpx;
 }
 
 .footer-tip {
   display: block;
-  margin-top: 24rpx;
   text-align: center;
-  font-size: 22rpx;
-  color: #bbb;
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  color: #999;
 }
 </style>

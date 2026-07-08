@@ -187,14 +187,14 @@
               @click="filterDraft.houseLayoutRoom = filterDraft.houseLayoutRoom === item ? '' : item"
             >{{ item }}</view>
           </view>
-          <text class="filter-section-title">阶段</text>
+          <text class="filter-section-title">拍卖状态</text>
           <view class="option-grid">
             <view
-              v-for="item in stageOptions"
+              v-for="item in auctionStatusOptions"
               :key="item.value"
               class="option-chip"
-              :class="{ active: filterDraft.auctionStatus === item.value }"
-              @click="filterDraft.auctionStatus = filterDraft.auctionStatus === item.value ? '' : item.value"
+              :class="{ active: filterDraft.auctionPhase === item.value }"
+              @click="filterDraft.auctionPhase = filterDraft.auctionPhase === item.value ? '' : item.value"
             >{{ item.label }}</view>
           </view>
         </view>
@@ -315,10 +315,10 @@
           <view class="time-row">
             <text class="time">开拍 {{ formatTime(item.startTime) }}</text>
             <text
-              v-if="countdownText(item.startTime)"
+              v-if="auctionCountdownLabel(item)"
               class="countdown"
-              :class="{ started: countdownText(item.startTime) === '已开拍' }"
-            >{{ countdownText(item.startTime) }}</text>
+              :class="{ started: isAuctionEnded(item) || countdownText(item.startTime) === '已开拍' }"
+            >{{ auctionCountdownLabel(item) }}</text>
           </view>
 
         </view>
@@ -352,16 +352,17 @@ import { refreshImTabBadge } from '@/utils/imTabBadge'
 import {
   calcServerOffset,
   formatCountdownToStart,
+  isAuctionEndedByStartTime,
   startCountdownTicker
 } from '@/utils/auctionCountdown'
 import {
   AREA_PRESETS,
+  AUCTION_STATUS_OPTIONS,
   FILTER_TABS,
   ITEM_TYPE_OPTIONS,
   PRICE_PRESETS,
   ROOM_TYPE_OPTIONS,
   SORT_OPTIONS,
-  STAGE_OPTIONS,
   buildAuctionListParams,
   cloneFilters,
   createDefaultFilters,
@@ -424,7 +425,7 @@ export default {
 
       roomTypeOptions: ROOM_TYPE_OPTIONS,
 
-      stageOptions: STAGE_OPTIONS,
+      auctionStatusOptions: AUCTION_STATUS_OPTIONS,
 
       sortOptions: SORT_OPTIONS,
 
@@ -586,6 +587,15 @@ export default {
 
       return formatCountdownToStart(startTime, this.serverOffset)
 
+    },
+
+    isAuctionEnded(item) {
+      return isAuctionEndedByStartTime(item?.startTime, this.serverOffset)
+    },
+
+    auctionCountdownLabel(item) {
+      if (this.isAuctionEnded(item)) return '已结束'
+      return this.countdownText(item.startTime)
     },
 
     startCountdownTimer() {
@@ -783,7 +793,7 @@ export default {
       } else if (this.activeFilter === 'more') {
         draft.itemType = ''
         draft.houseLayoutRoom = ''
-        draft.auctionStatus = ''
+        draft.auctionPhase = ''
       } else if (this.activeFilter === 'sort') {
         draft.orderBy = 'default'
       }

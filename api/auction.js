@@ -33,12 +33,16 @@ export function getAuctionByDataId(dataId) {
   })
 }
 
-/** 会员专享：获取解密后的法拍链接（需登录且为会员） */
+/** 获取解密后的法拍链接（是否需会员由后端按 auction_link 套餐配置决定） */
 export function getAuctionLink(dataId) {
-  return request({
+  const cfg = {
     url: '/house/auction/member/link/' + dataId,
     method: 'get'
-  })
+  }
+  if (!isLoggedIn()) {
+    cfg.headers = { isToken: false }
+  }
+  return request(cfg)
 }
 
 /** 地图页：某省范围内、中心点半径内的房源（含 markers 与分页 rows） */
