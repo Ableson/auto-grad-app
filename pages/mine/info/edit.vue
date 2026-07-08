@@ -78,6 +78,7 @@
         proxy.$modal.msgSuccess("修改成功")
         userStore.getInfo().then(() => {
           getUser()
+          setTimeout(() => uni.navigateBack(), 300)
         })
       })
     })
