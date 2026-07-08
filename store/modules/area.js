@@ -58,6 +58,18 @@ export const useAreaStore = defineStore('area', () => {
     return [{ id: `custom-${provinceId}`, pid: provinceId, deep: 1, name: extraCityName }, ...list]
   }
 
+  function getDistrictsByCityId(cityId, extraDistrictName) {
+    const list = (childrenMap.value[cityId] || []).filter((item) => item.deep === 2)
+    if (!extraDistrictName) {
+      return list
+    }
+    const exists = list.some((item) => matchAreaName(item, extraDistrictName))
+    if (exists) {
+      return list
+    }
+    return [{ id: `custom-${cityId}`, pid: cityId, deep: 2, name: extraDistrictName }, ...list]
+  }
+
   function getAreaFullName(area) {
     if (!area) return ''
     return area.extName || area.name || ''
@@ -71,6 +83,11 @@ export const useAreaStore = defineStore('area', () => {
   function findCityByName(provinceId, name) {
     if (!provinceId || !name) return null
     return getCitiesByProvinceId(provinceId).find((item) => matchAreaName(item, name)) || null
+  }
+
+  function findDistrictByName(cityId, name) {
+    if (!cityId || !name) return null
+    return getDistrictsByCityId(cityId).find((item) => matchAreaName(item, name)) || null
   }
 
   async function loadAreaOnce() {
@@ -115,8 +132,10 @@ export const useAreaStore = defineStore('area', () => {
     ensureLoaded,
     clearArea,
     getCitiesByProvinceId,
+    getDistrictsByCityId,
     findProvinceByName,
     findCityByName,
+    findDistrictByName,
     getAreaFullName,
     normalizeRegionName
   }
