@@ -1,20 +1,37 @@
 <template>
   <view class="detail-page">
     <view v-if="loading" class="empty-tip">加载中...</view>
-    <template v-else-if="detail">
+    <template v-else-if="detail || isCreateMode">
       <view class="user-bar">
-        <image :src="resolveAvatar(detail.avatar)" class="avatar" mode="aspectFill" @click="goProfile" />
+        <image
+          v-if="!isManualMode && !isCreateMode"
+          :src="resolveAvatar(detail.avatar)"
+          class="avatar"
+          mode="aspectFill"
+          @click="goProfile"
+        />
+        <view v-else class="avatar avatar-manual">
+          <text class="avatar-text">{{ manualAvatarText }}</text>
+        </view>
         <view class="user-info">
           <text class="name">{{ displayName }}</text>
-          <text class="sub">用户ID：{{ detail.customerUserId }}</text>
+          <text class="sub">{{ subTitle }}</text>
         </view>
-        <view class="match-entry" @click="openMatchHouses">
+        <view v-if="!isCreateMode" class="match-entry" @click="openMatchHouses">
           <text class="match-num">{{ detail.matchHouseCount || 0 }}</text>
           <text class="match-label">匹配房源</text>
         </view>
       </view>
 
       <view class="form-card">
+        <view v-if="isManualMode || isCreateMode" class="form-item">
+          <text class="form-label">客户名称</text>
+          <input v-model="form.customerName" class="form-input" placeholder="请输入客户名称" />
+        </view>
+        <view v-if="isManualMode || isCreateMode" class="form-item">
+          <text class="form-label">客户电话</text>
+          <input v-model="form.customerPhone" class="form-input" type="number" placeholder="选填" />
+        </view>
         <view class="form-item picker-item" :class="{ active: provinceDropdownOpen }">
           <text class="form-label">关注省份</text>
           <view class="picker-wrap">
@@ -94,7 +111,7 @@
       </view>
 
       <view class="action-bar">
-        <button class="save-btn" :loading="saving" @click="handleSave">保存需求</button>
+        <button class="save-btn" :loading="saving" @click="handleSave">{{ isCreateMode ? '保存并录入' : '保存需求' }}</button>
       </view>
     </template>
   </view>
@@ -104,7 +121,7 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
-import { getAgencyRequirementDetail, updateAgencyRequirement } from '@/api/agency'
+import { getAgencyRequirementDetail, updateAgencyRequirement, getAgencyManualRequirement, createAgencyManualRequirement, updateAgencyManualRequirement } from '@/api/agency'
 import { useAreaStore } from '@/store'
 import config from '@/config'
 import defAva from '@/static/images/profile.jpg'
@@ -114,6 +131,8 @@ const itemTypeOptions = ['住宅', '商业', '车辆', '土地', '股权', '其�
 const areaStore = useAreaStore()
 
 const userId = ref(null)
+const requirementId = ref(null)
+const pageMode = ref('')
 const detail = ref(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -122,6 +141,8 @@ const provinceDropdownOpen = ref(false)
 const cityDropdownOpen = ref(false)
 
 const form = ref({
+  customerName: '',
+  customerPhone: '',
   provinceName: '',
   cityName: '',
   minStartPriceYuan: '',
@@ -137,10 +158,26 @@ const cityOptions = computed(() => {
   return areaStore.getCitiesByProvinceId(selectedProvinceId.value, form.value.cityName)
 })
 
+const isCreateMode = computed(() => pageMode.value === 'create')
+const isManualMode = computed(() => pageMode.value === 'manual' || detail.value?.sourceType === '2')
+
 const displayName = computed(() => {
+  if (isCreateMode.value) return '新建客户需求'
+  if (isManualMode.value) return detail.value?.customerName || form.value.customerName || '线下客户'
   if (!detail.value) return '用户'
   if (detail.value.nickName) return detail.value.nickName
   return `用户${detail.value.customerUserId}`
+})
+
+const subTitle = computed(() => {
+  if (isCreateMode.value) return '录入线下客户，系统将按需求推荐房源'
+  if (isManualMode.value) return detail.value?.customerPhone ? `电话：${detail.value.customerPhone}` : '手动录入客户'
+  return `用户ID：${detail.value?.customerUserId || '-'}`
+})
+
+const manualAvatarText = computed(() => {
+  const name = displayName.value || '客'
+  return name.slice(0, 1)
 })
 
 onLoad(async (options) => {
@@ -148,8 +185,17 @@ onLoad(async (options) => {
     uni.showToast({ title: '请先登录', icon: 'none' })
     return
   }
-  userId.value = options.userId
+  userId.value = options.userId || null
+  requirementId.value = options.id || null
+  pageMode.value = options.mode || (requirementId.value ? 'manual' : '')
+  uni.setNavigationBarTitle({
+    title: pageMode.value === 'create' ? '录入客户需求' : '需求详情'
+  })
   await areaStore.ensureLoaded()
+  if (pageMode.value === 'create') {
+    detail.value = { sourceType: '2' }
+    return
+  }
   loadDetail()
 })
 
@@ -228,11 +274,18 @@ function resolveAvatar(avatar) {
 }
 
 function goProfile() {
+  if (!userId.value) return
   uni.navigateTo({ url: `/pages/work/customer/profile?userId=${userId.value}` })
 }
 
 function openMatchHouses() {
   const name = encodeURIComponent(displayName.value)
+  if (isManualMode.value && requirementId.value) {
+    uni.navigateTo({
+      url: `/pages/work/customer/houses?requirementId=${requirementId.value}&nickName=${name}&source=requirement`
+    })
+    return
+  }
   uni.navigateTo({
     url: `/pages/work/customer/houses?userId=${userId.value}&nickName=${name}&source=requirement`
   })
@@ -252,9 +305,15 @@ function toNumber(value) {
 async function loadDetail() {
   loading.value = true
   try {
-    const res = await getAgencyRequirementDetail(userId.value)
+    const res = isManualMode.value && requirementId.value
+      ? await getAgencyManualRequirement(requirementId.value)
+      : await getAgencyRequirementDetail(userId.value)
     const data = res.data || res
     detail.value = data
+    if (isManualMode.value) {
+      form.value.customerName = data.customerName || ''
+      form.value.customerPhone = data.customerPhone || ''
+    }
     applyRegionData(data.provinceNames, data.cityNames)
     form.value.minStartPriceYuan = data.minStartPriceYuan != null ? String(data.minStartPriceYuan) : ''
     form.value.maxStartPriceYuan = data.maxStartPriceYuan != null ? String(data.maxStartPriceYuan) : ''
@@ -268,19 +327,45 @@ async function loadDetail() {
   }
 }
 
+function buildPayload() {
+  return {
+    customerName: form.value.customerName || null,
+    customerPhone: form.value.customerPhone || null,
+    provinceNames: form.value.provinceName || null,
+    cityNames: form.value.cityName || null,
+    minStartPriceYuan: toNumber(form.value.minStartPriceYuan),
+    maxStartPriceYuan: toNumber(form.value.maxStartPriceYuan),
+    minDepositYuan: toNumber(form.value.minDepositYuan),
+    maxDepositYuan: toNumber(form.value.maxDepositYuan),
+    itemType: form.value.itemType || null
+  }
+}
+
 async function handleSave() {
   if (saving.value) return
+  if ((isCreateMode.value || isManualMode.value) && !form.value.customerName?.trim()) {
+    uni.showToast({ title: '请填写客户名称', icon: 'none' })
+    return
+  }
   saving.value = true
   try {
-    await updateAgencyRequirement(userId.value, {
-      provinceNames: form.value.provinceName || null,
-      cityNames: form.value.cityName || null,
-      minStartPriceYuan: toNumber(form.value.minStartPriceYuan),
-      maxStartPriceYuan: toNumber(form.value.maxStartPriceYuan),
-      minDepositYuan: toNumber(form.value.minDepositYuan),
-      maxDepositYuan: toNumber(form.value.maxDepositYuan),
-      itemType: form.value.itemType || null
-    })
+    const payload = buildPayload()
+    if (isCreateMode.value) {
+      const res = await createAgencyManualRequirement(payload)
+      const data = res.data || res
+      uni.showToast({ title: '录入成功', icon: 'success' })
+      setTimeout(() => {
+        uni.redirectTo({
+          url: `/pages/work/requirement/detail?id=${data.id}&mode=manual`
+        })
+      }, 800)
+      return
+    }
+    if (isManualMode.value && requirementId.value) {
+      await updateAgencyManualRequirement(requirementId.value, payload)
+    } else {
+      await updateAgencyRequirement(userId.value, payload)
+    }
     uni.showToast({ title: '已保存', icon: 'success' })
     await loadDetail()
   } catch (err) {
@@ -312,6 +397,19 @@ async function handleSave() {
   height: 96rpx;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.avatar-manual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef4ff;
+}
+
+.avatar-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #2979ff;
 }
 
 .user-info {

@@ -40,7 +40,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onReachBottom, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { getToken } from '@/utils/auth'
-import { getAgencyCustomerMatchHouses } from '@/api/agency'
+import { getAgencyCustomerMatchHouses, getAgencyManualRequirementMatchHouses } from '@/api/agency'
 import { resolveFileUrl } from '@/utils/fileUrl'
 import { useAuctionCountdown } from '@/composables/useAuctionCountdown'
 
@@ -52,6 +52,7 @@ const {
 } = useAuctionCountdown()
 
 const userId = ref(null)
+const requirementId = ref(null)
 const nickName = ref('')
 const matchSource = ref('profile')
 const houseList = ref([])
@@ -69,7 +70,8 @@ onLoad((options) => {
     setTimeout(() => uni.navigateTo({ url: '/pages/login' }), 500)
     return
   }
-  userId.value = options.userId
+  userId.value = options.userId || null
+  requirementId.value = options.requirementId || null
   nickName.value = decodeURIComponent(options.nickName || '')
   matchSource.value = options.source === 'requirement' ? 'requirement' : 'profile'
   const suffix = matchSource.value === 'requirement' ? '需求匹配房源' : '画像匹配房源'
@@ -103,7 +105,7 @@ function formatTime(time) {
 }
 
 async function loadList(reset = true) {
-  if (!userId.value) return
+  if (!userId.value && !requirementId.value) return
   if (reset) {
     loading.value = true
     pageNum.value = 1
@@ -111,11 +113,14 @@ async function loadList(reset = true) {
     loadingMore.value = true
   }
   try {
-    const res = await getAgencyCustomerMatchHouses(userId.value, {
+    const params = {
       pageNum: pageNum.value,
       pageSize,
       source: matchSource.value
-    })
+    }
+    const res = requirementId.value
+      ? await getAgencyManualRequirementMatchHouses(requirementId.value, params)
+      : await getAgencyCustomerMatchHouses(userId.value, params)
     const rows = res.rows || []
     total.value = res.total || 0
     applyServerTime(res.serverTime)

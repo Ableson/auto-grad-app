@@ -85,3 +85,38 @@ export function updateAgencyRequirement(userId, data) {
     data
   })
 }
+
+/** 手动录入客户需求 */
+export function createAgencyManualRequirement(data) {
+  return request({
+    url: '/house/agency/requirement/manual',
+    method: 'post',
+    data
+  })
+}
+
+/** 手动录入需求详情 */
+export function getAgencyManualRequirement(id) {
+  return request({
+    url: `/house/agency/requirement/manual/${id}`,
+    method: 'get'
+  })
+}
+
+/** 更新手动录入需求 */
+export function updateAgencyManualRequirement(id, data) {
+  return request({
+    url: `/house/agency/requirement/manual/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/** 手动录入需求的匹配房源 */
+export function getAgencyManualRequirementMatchHouses(id, params) {
+  return request({
+    url: `/house/agency/requirement/manual/${id}/match-houses`,
+    method: 'get',
+    params
+  })
+}

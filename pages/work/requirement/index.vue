@@ -79,26 +79,32 @@
       </picker>
 
       <button class="filter-btn" size="mini" type="primary" @click="reloadList">搜索</button>
+      <button class="add-btn" size="mini" @click="openCreate">录入需求</button>
     </view>
 
     <view v-if="loading && !list.length" class="empty-tip">加载中...</view>
-    <view v-else-if="!list.length" class="empty-tip">暂无客户需求，认领成功后会自动生成</view>
+    <view v-else-if="!list.length" class="empty-tip">暂无客户需求，可点击「录入需求」添加线下客户</view>
     <view v-else class="list-wrap">
       <view
         v-for="item in list"
-        :key="item.customerUserId"
+        :key="item.id || item.customerUserId"
         class="req-card"
         @click="openDetail(item)"
       >
         <image
+          v-if="!isManualItem(item)"
           :src="resolveAvatar(item.avatar)"
           class="avatar"
           mode="aspectFill"
           @click.stop="goProfile(item.customerUserId)"
         />
+        <view v-else class="avatar avatar-manual">
+          <text class="avatar-text">{{ manualAvatarText(item) }}</text>
+        </view>
         <view class="req-main">
           <view class="req-head">
             <text class="name">{{ displayName(item) }}</text>
+            <text v-if="isManualItem(item)" class="manual-tag">手动录入</text>
           </view>
           <view class="req-row">
             <text class="label">关注省份</text>
@@ -270,8 +276,24 @@ async function ensureAgencyAccess() {
 }
 
 function displayName(item) {
+  if (isManualItem(item)) {
+    return item.customerName || '线下客户'
+  }
   if (item.nickName) return item.nickName
   return `用户${item.customerUserId}`
+}
+
+function isManualItem(item) {
+  return item?.sourceType === '2'
+}
+
+function manualAvatarText(item) {
+  const name = item?.customerName || '客'
+  return name.slice(0, 1)
+}
+
+function openCreate() {
+  uni.navigateTo({ url: '/pages/work/requirement/detail?mode=create' })
 }
 
 function splitTags(value) {
@@ -290,15 +312,26 @@ function resolveAvatar(avatar) {
 }
 
 function goProfile(userId) {
+  if (!userId) return
   uni.navigateTo({ url: `/pages/work/customer/profile?userId=${userId}` })
 }
 
 function openDetail(item) {
+  if (isManualItem(item)) {
+    uni.navigateTo({ url: `/pages/work/requirement/detail?id=${item.id}&mode=manual` })
+    return
+  }
   uni.navigateTo({ url: `/pages/work/requirement/detail?userId=${item.customerUserId}` })
 }
 
 function openMatchHouses(item) {
   const name = encodeURIComponent(displayName(item))
+  if (isManualItem(item)) {
+    uni.navigateTo({
+      url: `/pages/work/customer/houses?requirementId=${item.id}&nickName=${name}&source=requirement`
+    })
+    return
+  }
   uni.navigateTo({
     url: `/pages/work/customer/houses?userId=${item.customerUserId}&nickName=${name}&source=requirement`
   })
@@ -409,8 +442,15 @@ async function fetchList(append = false) {
   transform: rotate(180deg);
 }
 
-.filter-btn {
+.filter-btn,
+.add-btn {
   flex-shrink: 0;
+}
+
+.add-btn {
+  background: #fff;
+  color: #2979ff;
+  border: 1rpx solid #2979ff;
 }
 
 .picker-wrap {
@@ -482,6 +522,33 @@ async function fetchList(append = false) {
 .req-main {
   flex: 1;
   min-width: 0;
+}
+
+.req-head {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.manual-tag {
+  font-size: 20rpx;
+  color: #ff9800;
+  background: #fff7e8;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.avatar-manual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef4ff;
+}
+
+.avatar-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #2979ff;
 }
 
 .name {
