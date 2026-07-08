@@ -79,11 +79,10 @@
       </picker>
 
       <button class="filter-btn" size="mini" type="primary" @click="reloadList">搜索</button>
-      <button class="add-btn" size="mini" @click="openCreate">录入需求</button>
     </view>
 
     <view v-if="loading && !list.length" class="empty-tip">加载中...</view>
-    <view v-else-if="!list.length" class="empty-tip">暂无客户需求，可点击「录入需求」添加线下客户</view>
+    <view v-else-if="!list.length" class="empty-tip">暂无客户需求，可点击右下角按钮添加线下客户</view>
     <view v-else class="list-wrap">
       <view
         v-for="item in list"
@@ -145,6 +144,10 @@
 
     <view v-if="loadingMore" class="load-tip">加载中...</view>
     <view v-else-if="!hasMore && list.length" class="load-tip">没有更多了</view>
+
+    <view class="fab-add" @click="openCreate">
+      <image class="fab-icon" src="/static/images/tabbar/add_.png" mode="aspectFit" />
+    </view>
   </view>
 </template>
 
@@ -377,7 +380,7 @@ async function fetchList(append = false) {
 .requirement-page {
   min-height: 100vh;
   background: #f4f4f4;
-  padding-bottom: 40rpx;
+  padding-bottom: 160rpx;
 }
 
 .filter-bar {
@@ -442,15 +445,33 @@ async function fetchList(append = false) {
   transform: rotate(180deg);
 }
 
-.filter-btn,
-.add-btn {
+.filter-btn {
   flex-shrink: 0;
 }
 
-.add-btn {
+.fab-add {
+  position: fixed;
+  right: 32rpx;
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
   background: #fff;
-  color: #2979ff;
-  border: 1rpx solid #2979ff;
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.fab-add:active {
+  opacity: 0.88;
+  transform: scale(0.96);
+}
+
+.fab-icon {
+  width: 64rpx;
+  height: 64rpx;
 }
 
 .picker-wrap {
