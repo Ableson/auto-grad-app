@@ -180,15 +180,21 @@
 
       >
 
-        <image
+        <view class="house-media">
 
-          class="house-cover"
+          <image
 
-          :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
+            class="house-cover"
 
-          mode="aspectFill"
+            :src="resolveFileUrl(item.imgPath) || '/static/logo.png'"
 
-        ></image>
+            mode="aspectFill"
+
+          ></image>
+
+          <text v-if="formatHouseSpec(item)" class="house-spec">{{ formatHouseSpec(item) }}</text>
+
+        </view>
 
         <view class="house-info">
 
@@ -414,6 +420,22 @@ export default {
       if (!time) return '-'
 
       return String(time).replace('T', ' ').slice(0, 16)
+
+    },
+
+    formatHouseSpec(item) {
+
+      const parts = []
+
+      if (item.houseLayout) parts.push(item.houseLayout)
+
+      if (item.buildingArea != null && item.buildingArea !== '') {
+
+        parts.push(`${item.buildingArea}㎡`)
+
+      }
+
+      return parts.join(' · ')
 
     },
 
@@ -1221,9 +1243,17 @@ export default {
 
 
 
-.house-cover {
+.house-media {
 
   width: 200rpx;
+
+  flex-shrink: 0;
+
+}
+
+.house-cover {
+
+  width: 100%;
 
   height: 150rpx;
 
@@ -1231,7 +1261,25 @@ export default {
 
   background: #f5f5f5;
 
-  flex-shrink: 0;
+}
+
+.house-spec {
+
+  margin-top: 8rpx;
+
+  font-size: 22rpx;
+
+  color: #666;
+
+  line-height: 1.4;
+
+  display: -webkit-box;
+
+  -webkit-box-orient: vertical;
+
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
 
 }
 
@@ -1326,6 +1374,8 @@ export default {
   font-size: 24rpx;
   color: #ff6a00;
   font-weight: 500;
+  align-self: flex-end;
+  text-align: right;
 }
 
 .countdown.started {

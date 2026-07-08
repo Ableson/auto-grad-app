@@ -8,7 +8,7 @@
           v-if="imageList.length"
           class="hero-swiper"
           circular
-          indicator-dots
+          :indicator-dots="false"
           indicator-color="rgba(255,255,255,0.5)"
           indicator-active-color="#ffffff"
           autoplay
@@ -429,20 +429,18 @@ export default {
 
 .hero {
   background: #fff;
-  padding: 24rpx;
+  padding-bottom: 24rpx;
 }
 
 .hero-swiper {
   width: 100%;
   height: 420rpx;
-  border-radius: 16rpx;
   overflow: hidden;
 }
 
 .hero-cover {
   width: 100%;
   height: 420rpx;
-  border-radius: 16rpx;
   background: #f0f0f0;
 }
 
@@ -459,6 +457,7 @@ export default {
 
 .hero-body {
   margin-top: 20rpx;
+  padding: 0 24rpx;
 }
 
 .hero-title-wrap {

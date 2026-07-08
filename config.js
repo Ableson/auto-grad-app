@@ -31,9 +31,9 @@ export default {
   // 应用信息
   appInfo: {
     // 应用名称
-    name: "house-app",
+    name: "智汇拍品助手",
     // 应用版本
-    version: "1.2.0",
+    version: "1.0.0",
     // 应用logo
     logo: "/static/logo.png",
     // 官方网站

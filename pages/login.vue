@@ -2,7 +2,7 @@
   <view class="normal-login-container">
     <view class="logo-content align-center justify-center flex">
       <image style="width: 100rpx;height: 100rpx;" :src="globalConfig.appInfo.logo" mode="widthFix"></image>
-      <text class="title">法拍房源</text>
+      <text class="title">智汇拍品助手</text>
     </view>
 
     <!-- #ifdef MP-WEIXIN -->
