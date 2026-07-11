@@ -4,7 +4,8 @@ export default {
   // baseUrl: 'http://localhost:8080/prod-api',
   // baseUrl: 'http://192.168.31.225:8080',
   // baseUrl: 'http://192.168.2.31:8080',
-  baseUrl: 'https://me.gmns.top:8443/prod-api',
+  baseUrl: 'http://43.136.135.96/prod-api',
+  // baseUrl: 'https://paipin.site/prod-api',
   // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
 
   /**
@@ -14,16 +15,22 @@ export default {
    *   腾讯 apis.map.qq.com | 高德 restapi.amap.com | 百度 api.map.baidu.com
    * 逆地理编码失败时会依次尝试已配置 Key 的服务；建议微信小程序至少配置 tencent Key 作为兜底
    *
+   * Key 类型须与调用接口一致（本项目前端直连 REST API）：
+   *   腾讯：WebServiceAPI Key（非 JS SDK Key）
+   *   高德：Web服务 Key（非「Web端 JS API / Android / iOS / 微信小程序」Key）
+   *         若报 USERKEY_PLAT_NOMATCH，说明 Key 平台选错了，需新建「Web服务」类型 Key
+   *   百度：微信小程序 Key，并绑定 AppId wx5bd6921080492df7，且开启逆地理编码服务
+   *
    * 文件 URL 前缀、地图周边半径等运行时配置见 GET /house/app/config（启动时拉取）
    */
   /** 本地展示的搜索历史条数（超出移除最早一条；与服务端 house.search.history-max 可分别配置） */
   searchHistoryMax: 10,
 
   map: {
-    provider: 'tencent',
+    provider: 'amap',
     keys: {
       tencent: 'SGSBZ-GCA64-KV5U3-KYK2O-CFUG6-3UBTQ',
-      amap: '',
+      amap: '0b089da8784f6bcf544badd7fdd23c9c',
       baidu: 'eDwcbdnneleXEmLHrgH45ArCzcsPD0C6'
     }
   },
@@ -37,15 +44,15 @@ export default {
     // 应用logo
     logo: "/static/logo.png",
     // 官方网站
-    site_url: "http://ruoyi.vip",
+    site_url: "http://paipin.site",
     // 政策协议
     agreements: [{
         title: "隐私政策",
-        url: "https://ruoyi.vip/protocol.html"
+        url: "https://paipin.site/protocol.html"
       },
       {
         title: "用户服务协议",
-        url: "https://ruoyi.vip/protocol.html"
+        url: "https://paipin.site/protocol.html"
       }
     ]
   }
