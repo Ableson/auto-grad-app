@@ -43,7 +43,7 @@
     },
     "quickapp" : {},
     "mp-weixin" : {
-        "appid" : "wx5bd6921080492df7",
+        "appid" : "wx8048f97a94b8876c",
         "requiredPrivateInfos" : [ "getLocation" ],
         "permission" : {
             "scope.userLocation" : {

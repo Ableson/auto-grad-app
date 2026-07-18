@@ -22,19 +22,19 @@
 
   const list = ref([{
     icon: 'iconfont icon-github',
-    title: '若依问题',
+    title: '智汇拍品问题',
     childList: [{
-      title: '若依开源吗？',
-      content: '开源'
+      title: '有哪些房源？',
+      content: '淘宝和京东'
     }, {
-      title: '若依可以商用吗？',
-      content: '可以'
+      title: '有什么功能？',
+      content: '解决客户需求多样化，不必自己记忆，交给系统管理'
     }, {
-      title: '若依官网地址多少？',
-      content: 'http://ruoyi.vip'
+      title: '官网地址多少？',
+      content: 'https://paipin.site'
     }, {
-      title: '若依文档地址多少？',
-      content: 'http://doc.ruoyi.vip'
+      title: '功能特点？',
+      content: '填入客户需求，满足房源出现自动提醒'
     }]
   },
   {
@@ -42,7 +42,7 @@
     title: '其他问题',
     childList: [{
       title: '如何退出登录？',
-      content: '请点击[我的] - [应用设置] - [退出登录]即可退出登录',
+      content: '请点击[我的] - [空间] - [详情] - [退出登录]即可退出登录',
     }, {
       title: '如何修改用户头像？',
       content: '请点击[我的] - [选择头像] - [点击提交]即可更换用户头像',

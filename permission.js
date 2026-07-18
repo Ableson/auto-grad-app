@@ -13,6 +13,8 @@ const guestAllowList = [
   '/pages/mine/index',
   '/pages/house/detail/index',
   '/pages/common/webview/index',
+  '/pages/common/textview/index',
+  '/pages/protocol/index',
   '/pages/common/province/index',
   '/pages/member/index'
 ]

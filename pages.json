@@ -164,6 +164,11 @@
     "style": {
       "navigationBarTitleText": "浏览文本"
     }
+  }, {
+    "path": "pages/protocol/index",
+    "style": {
+      "navigationBarTitleText": "用户服务条款"
+    }
   }],
   "tabBar": {
     "color": "#000000",

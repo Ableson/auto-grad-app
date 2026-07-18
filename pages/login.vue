@@ -15,7 +15,7 @@
       >
         微信一键登录
       </button>
-      <view class="wx-login-tip">将尝试获取手机号；未开通或未授权时，登录后可在个人信息中填写</view>
+      <view class="wx-login-tip">手机号未开通或未授权时，登录后可在个人信息中填写</view>
       <view class="toggle-pwd" @click="togglePwdLogin">
         <text>{{ showPwdLogin ? '收起账号登录' : '使用账号密码登录' }}</text>
       </view>
@@ -80,13 +80,11 @@
   })
 
   function handlePrivacy() {
-    const site = globalConfig.appInfo.agreements[0]
-    proxy.$tab.navigateTo(`/pages/common/webview/index?title=${site.title}&url=${site.url}`)
+    proxy.$tab.navigateTo('/pages/protocol/index')
   }
 
   function handleUserAgrement() {
-    const site = globalConfig.appInfo.agreements[1]
-    proxy.$tab.navigateTo(`/pages/common/webview/index?title=${site.title}&url=${site.url}`)
+    proxy.$tab.navigateTo('/pages/protocol/index')
   }
 
   function getCode() {

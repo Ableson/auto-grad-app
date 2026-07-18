@@ -3,9 +3,9 @@ export default {
   // 生产环境：nginx 将 /prod-api 反向代理到后端（见 ruoyi-ui-house/nginx.conf）
   // baseUrl: 'http://localhost:8080/prod-api',
   // baseUrl: 'http://192.168.31.225:8080',
-  // baseUrl: 'http://192.168.2.31:8080',
-  baseUrl: 'http://43.136.135.96/prod-api',
-  // baseUrl: 'https://paipin.site/prod-api',
+  // baseUrl: 'http://127.0.0.1:8080',
+  // baseUrl: 'http://43.136.135.96/prod-api',
+  baseUrl: 'https://paipin.site/prod-api',
   // 本地直连 Spring Boot（无 nginx）时改为：'http://localhost:8080'
 
   /**
@@ -19,7 +19,7 @@ export default {
    *   腾讯：WebServiceAPI Key（非 JS SDK Key）
    *   高德：Web服务 Key（非「Web端 JS API / Android / iOS / 微信小程序」Key）
    *         若报 USERKEY_PLAT_NOMATCH，说明 Key 平台选错了，需新建「Web服务」类型 Key
-   *   百度：微信小程序 Key，并绑定 AppId wx5bd6921080492df7，且开启逆地理编码服务
+   *   百度：微信小程序 Key，并绑定 AppId wx8048f97a94b8876c，且开启逆地理编码服务
    *
    * 文件 URL 前缀、地图周边半径等运行时配置见 GET /house/app/config（启动时拉取）
    */
@@ -44,15 +44,15 @@ export default {
     // 应用logo
     logo: "/static/logo.png",
     // 官方网站
-    site_url: "http://paipin.site",
+    site_url: "https://paipin.site",
     // 政策协议
     agreements: [{
         title: "隐私政策",
-        url: "https://paipin.site/protocol.html"
+        url: "/pages/protocol/index"
       },
       {
         title: "用户服务协议",
-        url: "https://paipin.site/protocol.html"
+        url: "/pages/protocol/index"
       }
     ]
   }
