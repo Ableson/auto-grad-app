@@ -105,6 +105,13 @@
             <text class="name">{{ displayName(item) }}</text>
             <text v-if="isManualItem(item)" class="manual-tag">手动录入</text>
           </view>
+          <view v-if="isMapLocationItem(item)" class="req-row">
+            <text class="label">地图范围</text>
+            <view class="tag-wrap">
+              <text class="tag tag-map">{{ mapLocationLabel(item) }}</text>
+            </view>
+          </view>
+          <template v-else>
           <view class="req-row">
             <text class="label">关注省份</text>
             <view class="tag-wrap">
@@ -127,6 +134,18 @@
               >{{ tag }}</text>
             </view>
           </view>
+          <view class="req-row">
+            <text class="label">关注区县</text>
+            <view class="tag-wrap">
+              <text v-if="!splitTags(item.districtNames).length" class="tag tag-empty">-</text>
+              <text
+                v-for="(tag, idx) in splitTags(item.districtNames)"
+                :key="'d-' + (item.id || item.customerUserId) + '-' + idx"
+                class="tag"
+              >{{ tag }}</text>
+            </view>
+          </view>
+          </template>
           <view class="req-row">
             <text class="label">标的类型</text>
             <view class="tag-wrap">
@@ -288,6 +307,20 @@ function displayName(item) {
 
 function isManualItem(item) {
   return item?.sourceType === '2'
+}
+
+function isMapLocationItem(item) {
+  return item?.locationType === '2' || (item?.mapLatitude != null && item?.mapLongitude != null)
+}
+
+function mapLocationLabel(item) {
+  const radius = item?.mapRadiusKm || 50
+  const addr = item?.mapAddress
+  if (addr) return `${addr} · 周边${radius}km`
+  if (item?.mapLatitude != null && item?.mapLongitude != null) {
+    return `${Number(item.mapLatitude).toFixed(4)}, ${Number(item.mapLongitude).toFixed(4)} · 周边${radius}km`
+  }
+  return `地图范围 · 周边${radius}km`
 }
 
 function manualAvatarText(item) {
@@ -614,6 +647,11 @@ async function fetchList(append = false) {
 .tag-type {
   background: #f0f9f4;
   color: #18a058;
+}
+
+.tag-map {
+  background: #eef4ff;
+  color: #2979ff;
 }
 
 .tag-empty {

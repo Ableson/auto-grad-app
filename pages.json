@@ -113,6 +113,11 @@
       "navigationBarTitleText": "需求详情"
     }
   }, {
+    "path": "pages/work/requirement/map-picker",
+    "style": {
+      "navigationBarTitleText": "地图选点"
+    }
+  }, {
     "path": "pages/mine/agency/apply",
     "style": {
       "navigationBarTitleText": "辅拍机构入驻"
