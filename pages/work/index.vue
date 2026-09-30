@@ -44,6 +44,7 @@
   import { onShow } from "@dcloudio/uni-app"
   import { getToken } from '@/utils/auth'
   import { getAgencyApplyStatus } from '@/api/agency'
+  import { requestListingPushSubscribe } from '@/utils/pushSubscribe'
 
   const { proxy } = getCurrentInstance()
   const current = ref(0)
@@ -96,6 +97,9 @@
       const res = await getAgencyApplyStatus()
       const statusData = res.data || res
       isAgencyStaff.value = !!statusData.isAgencyStaff
+      if (isAgencyStaff.value) {
+        requestListingPushSubscribe({ agency: true, user: false }).catch(() => {})
+      }
     } catch (err) {
       isAgencyStaff.value = false
     }

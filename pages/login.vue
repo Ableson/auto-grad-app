@@ -68,6 +68,7 @@
   import { getCodeImg } from '@/api/login'
   import { useConfigStore, useUserStore, useAreaStore } from '@/store'
   import { syncLocationToServer } from '@/utils/userLocation'
+  import { requestListingPushSubscribe } from '@/utils/pushSubscribe'
 
   const { proxy } = getCurrentInstance()
   const globalConfig = useConfigStore().config
@@ -210,6 +211,7 @@
     return useUserStore().getInfo().then(async () => {
       await useAreaStore().loadAreaOnce().catch(() => {})
       await syncLocationToServer().catch(() => {})
+      await requestListingPushSubscribe({ agency: true, user: true }).catch(() => {})
       proxy.$tab.reLaunch('/pages/index')
     })
   }
