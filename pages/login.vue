@@ -43,10 +43,20 @@
       </view>
     </view>
 
-    <view class="xieyi text-center">
-      <text class="text-grey1">登录即代表同意</text>
-      <text @click="handleUserAgrement" class="text-blue">《用户协议》</text>
-      <text @click="handlePrivacy" class="text-blue">《隐私协议》</text>
+    <view v-if="showAgreementModal" class="agreement-mask" @click.stop="">
+      <view class="agreement-dialog" @click.stop="">
+        <view class="agreement-title">温馨提示</view>
+        <view class="agreement-body">
+          <text>您使用本应用前应当阅读并同意</text>
+          <text class="text-blue" @click="handleUserAgrement">《用户协议》</text>
+          <text class="text-blue" @click="handlePrivacy">《隐私协议》</text>
+          <text>当您点击同意并开始使用产品服务时，即表示你已理解并同意。</text>
+        </view>
+        <view class="agreement-actions">
+          <button class="agreement-btn agreement-btn-cancel" @click="handleAgreementReject">不同意</button>
+          <button class="agreement-btn agreement-btn-confirm" @click="handleAgreementAccept">同意并继续</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -65,6 +75,46 @@
   const captchaEnabled = ref(true)
   const wxLoading = ref(false)
   const showPwdLogin = ref(false)
+  const showAgreementModal = ref(false)
+
+  const AGREEMENT_ACCEPTED_KEY = 'app_user_agreement_accepted'
+
+  function hasAcceptedAgreement() {
+    return uni.getStorageSync(AGREEMENT_ACCEPTED_KEY) === '1'
+  }
+
+  function openAgreementModalIfNeeded() {
+    if (!hasAcceptedAgreement()) {
+      showAgreementModal.value = true
+    }
+  }
+
+  function ensureAgreementAccepted() {
+    if (!hasAcceptedAgreement()) {
+      showAgreementModal.value = true
+      return false
+    }
+    return true
+  }
+
+  function handleAgreementAccept() {
+    uni.setStorageSync(AGREEMENT_ACCEPTED_KEY, '1')
+    showAgreementModal.value = false
+  }
+
+  function handleAgreementReject() {
+    // #ifdef MP-WEIXIN
+    uni.exitMiniProgram({})
+    // #endif
+    // #ifndef MP-WEIXIN
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      uni.navigateBack()
+    } else {
+      proxy.$modal.msg('需同意协议后方可使用本应用')
+    }
+    // #endif
+  }
 
   // #ifndef MP-WEIXIN
   showPwdLogin.value = true
@@ -98,6 +148,7 @@
   }
 
   function togglePwdLogin() {
+    if (!ensureAgreementAccepted()) return
     showPwdLogin.value = !showPwdLogin.value
     if (showPwdLogin.value) {
       getCode()
@@ -105,6 +156,7 @@
   }
 
   async function handleWxPhoneLogin(e) {
+    if (!ensureAgreementAccepted()) return
     if (wxLoading.value) return
     const detail = e.detail || {}
     const phoneGranted = detail.errMsg && detail.errMsg.indexOf('ok') !== -1 && detail.code
@@ -130,6 +182,7 @@
   }
 
   async function handleLogin() {
+    if (!ensureAgreementAccepted()) return
     if (loginForm.value.username === "") {
       proxy.$modal.msgError("请输入账号")
     } else if (loginForm.value.password === "") {
@@ -166,6 +219,7 @@
       proxy.$tab.reLaunch('/pages/index')
       return
     }
+    openAgreementModalIfNeeded()
     if (showPwdLogin.value) {
       getCode()
     }
@@ -274,11 +328,73 @@
       }
     }
 
-    .xieyi {
-      color: #333;
-      margin-top: 40rpx;
-      text-align: center;
+    .agreement-mask {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48rpx;
+      box-sizing: border-box;
+    }
+
+    .agreement-dialog {
       width: 100%;
+      max-width: 620rpx;
+      background: #fff;
+      border-radius: 24rpx;
+      overflow: hidden;
+    }
+
+    .agreement-title {
+      padding: 36rpx 32rpx 16rpx;
+      font-size: 34rpx;
+      font-weight: 600;
+      text-align: center;
+      color: #333;
+    }
+
+    .agreement-body {
+      padding: 16rpx 32rpx 32rpx;
+      font-size: 28rpx;
+      line-height: 1.75;
+      color: #666;
+      text-align: justify;
+    }
+
+    .agreement-actions {
+      display: flex;
+      border-top: 1rpx solid #eee;
+    }
+
+    .agreement-btn {
+      flex: 1;
+      margin: 0;
+      padding: 0;
+      height: 96rpx;
+      line-height: 96rpx;
+      font-size: 30rpx;
+      border-radius: 0;
+      background: #fff;
+    }
+
+    .agreement-btn::after {
+      border: none;
+    }
+
+    .agreement-btn-cancel {
+      color: #666;
+      border-right: 1rpx solid #eee;
+    }
+
+    .agreement-btn-confirm {
+      color: #007aff;
+      font-weight: 600;
     }
   }
 </style>
